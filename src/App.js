@@ -9,13 +9,14 @@ import Login from './pages/Login';
 import Logout from './pages/Logout';
 import Register from './pages/Register';
 
-
 import Items from './pages/Items';
 
+import { Notyf } from 'notyf'; // ✅ Import Notyf
 import 'notyf/notyf.min.css'; // ✅ Add this
 
 
 function App() {
+  const notyf = new Notyf(); // initialize Notyf
 
   const [user, setUser] = useState({
     id: null,
@@ -27,6 +28,15 @@ function App() {
   };
 
   useEffect(() => {
+
+     notyf.open({
+      type: 'info',
+      message: 'Please wait 1–3 mins, server might be slow...',
+      duration: 5000, // 5 seconds
+      ripple: true,
+    });
+
+     
     fetch(`${process.env.REACT_APP_API_URL}/users/details`, {
       headers: {
         Authorization: `Bearer ${ localStorage.getItem('token') }`
