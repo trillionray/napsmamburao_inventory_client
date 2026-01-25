@@ -36,7 +36,7 @@ function App() {
       ripple: true,
     });
 
-     
+
     fetch(`${process.env.REACT_APP_API_URL}/users/details`, {
       headers: {
         Authorization: `Bearer ${ localStorage.getItem('token') }`
@@ -76,6 +76,7 @@ function App() {
         <AppNavbar />
         <Container fluid className="pt-4">
           <Routes>
+            <Route path="/" element={<Items />} />
             <Route path="/login" element={<Login />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/register" element={<Register />} />

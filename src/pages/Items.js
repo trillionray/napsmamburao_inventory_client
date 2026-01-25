@@ -1,15 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
+import UserContext from "../context/UserContext";
+
+
 import { Container, Row, Col, Card, Spinner, Modal, Button, Form } from "react-bootstrap";
 
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
 
+import { useNavigate } from "react-router-dom";
 
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function Items() {
 
+	const { user, setUser } = useContext(UserContext);
+
+	const navigate = useNavigate();
 	const notyf = new Notyf();
 
 	const [users, setUsers] = useState([]);
@@ -49,6 +56,11 @@ export default function Items() {
   const token = localStorage.getItem("token");
   // Fetch items on mount
   useEffect(() => {
+
+  	if(!user || user.id == null){
+  		navigate("/login")
+  	}
+
     fetch(`${API_URL}/items/all`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
