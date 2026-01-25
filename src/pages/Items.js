@@ -3,17 +3,19 @@ import { Container, Row, Col, Card, Spinner, Modal, Button, Form } from "react-b
 
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-const notyf = new Notyf();
+
 
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function Items() {
 
-  const [users, setUsers] = useState([]);
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingUsers, setLoadingUsers] = useState(true);
+	const notyf = new Notyf();
+
+	const [users, setUsers] = useState([]);
+	const [items, setItems] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [loadingUsers, setLoadingUsers] = useState(true);
 
   // Notes modal
   const [showNotesModal, setShowNotesModal] = useState(false);
