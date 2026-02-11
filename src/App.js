@@ -11,6 +11,9 @@ import Register from './pages/Register';
 
 import Items from './pages/Items';
 
+import MyTimeLogs from './pages/MyTimeLogs';
+import AllTimeLogs from './pages/AllTimeLogs';
+
 import { Notyf } from 'notyf'; // ✅ Import Notyf
 import 'notyf/notyf.min.css'; // ✅ Add this
 
@@ -29,7 +32,7 @@ function App() {
 
   useEffect(() => {
 
-     notyf.open({
+     notyf.error({
       type: 'info',
       message: 'Please wait 1–3 mins, server might be slow...',
       duration: 5000, // 5 seconds
@@ -48,7 +51,8 @@ function App() {
       if (data && data._id) {
         setUser({
           id: data._id,
-          role: data.role
+          role: data.role,
+          name: data.name
         });
       } else {
         setUser({
@@ -82,6 +86,8 @@ function App() {
             <Route path="/register" element={<Register />} />
 
             <Route path="/items" element={<Items />} />
+            <Route path="/mytimelogs" element={<MyTimeLogs />} />
+            <Route path="/admin/timelogs" element={<AllTimeLogs />} />
 
             
           </Routes>

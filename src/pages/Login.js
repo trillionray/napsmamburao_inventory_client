@@ -59,6 +59,7 @@ export default function Login() {
           id: data._id,
           email: data.email,
           role: data.role,
+          name: data.name
         });
       });
   }
