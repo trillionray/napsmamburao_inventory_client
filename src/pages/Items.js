@@ -203,6 +203,11 @@ export default function Items() {
     })
       .then((res) => res.json())
       .then((newItem) => {
+        console.log(newItem)
+        if(newItem.message == 'Action Forbidden: User not a principal'){
+          notyf.error("Add Item failed. Admin Only Feature");
+          return
+        }
         setItems((prev) => [newItem, ...prev]); // append new item
         setShowAddModal(false);
         setAddFormData({
