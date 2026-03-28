@@ -18,7 +18,7 @@ const MyTimeLogs = () => {
   useEffect(() => {
     fetchTimeLogs();
   }, []);
-
+3
   const fetchTimeLogs = useCallback(async () => {
     setLoading(true);
     try {
@@ -36,7 +36,7 @@ const MyTimeLogs = () => {
     }
   }, [API_URL, token]);
 
-  
+
   const handleTimeIn = () => {
     setActionLoading(true);
 
