@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
@@ -18,8 +18,8 @@ const MyTimeLogs = () => {
   useEffect(() => {
     fetchTimeLogs();
   }, []);
-3
-  const fetchTimeLogs = useCallback(async () => {
+
+  const fetchTimeLogs = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/timelogs/my`, {
@@ -34,8 +34,7 @@ const MyTimeLogs = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, token]);
-
+  };
 
   const handleTimeIn = () => {
     setActionLoading(true);
