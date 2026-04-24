@@ -268,14 +268,12 @@ const MyTimeLogs = () => {
               <Card className="shadow-sm h-100">
                 <Card.Body>
 
-                 {/* <div className="d-flex justify-content-between">
-                    <strong>My Log</strong>
-                    <Button size="sm" onClick={() => startEdit(log)}>
-                      Edit
-                    </Button>
+                  <div className="d-flex justify-content-between">
+                    {/*<strong>My Log</strong>*/}
+                    
                   </div>
 
-                  <hr />*/}
+                  <hr />
 
                   <p><strong>Time In:</strong><br />{new Date(log.timeIn).toLocaleString()}</p>
                   <p><strong>Time Out:</strong><br />{log.timeOut ? new Date(log.timeOut).toLocaleString() : "-"}</p>
@@ -284,6 +282,10 @@ const MyTimeLogs = () => {
                   {/* ================= TASK UI UPDATED ================= */}
                   <div>
                     <strong>Tasks:</strong>
+
+                    <Button size="sm" className="mt-3 w-100 bg-success" onClick={() => startEdit(log)}>
+                      Edit
+                    </Button>
 
                     <div className="mt-2 d-flex flex-column gap-2">
                       {log.tasks?.length ? (
@@ -306,6 +308,8 @@ const MyTimeLogs = () => {
                       )}
                     </div>
                   </div>
+
+
 
                 </Card.Body>
               </Card>
