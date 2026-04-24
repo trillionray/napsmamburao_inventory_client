@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import DataTable from "react-data-table-component";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const notyf = new Notyf();
@@ -14,16 +13,14 @@ const AllTimeLogs = () => {
   const API_URL = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem("token");
 
-  // Fetch all logs
   const fetchAllLogs = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/timelogs/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch logs");
+
       const data = await res.json();
-      console.log(data);
       setLogs(data.timelogs || []);
     } catch (error) {
       console.error(error);
@@ -34,93 +31,145 @@ const AllTimeLogs = () => {
   };
 
   const markAsPaid = async (timelogId) => {
-  try {
-    const res = await fetch(`${API_URL}/timelogs/${timelogId}/paid`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const res = await fetch(`${API_URL}/timelogs/${timelogId}/paid`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!res.ok) throw new Error("Failed to mark as paid");
+      if (!res.ok) throw new Error("Failed to mark as paid");
 
-    notyf.success("Time log marked as paid");
-    fetchAllLogs(); // refresh table
-  } catch (error) {
-    console.error(error);
-    notyf.error("Unable to update paid status");
-  }
-};
+      notyf.success("Marked as paid");
+      fetchAllLogs();
+    } catch (error) {
+      console.error(error);
+      notyf.error("Unable to update paid status");
+    }
+  };
 
   useEffect(() => {
     fetchAllLogs();
   }, []);
 
-  const columns = [
-    {
-      name: "User",
-      cell: (row) => {
-        const timeInDate = new Date(row.timeIn);
-        const today = new Date();
-        const isToday =
-          timeInDate.getDate() === today.getDate() &&
-          timeInDate.getMonth() === today.getMonth() &&
-          timeInDate.getFullYear() === today.getFullYear();
-        const isActive = isToday && !row.timeOut;
-
-        return (
-          <span style={{ color: isActive ? "green" : "inherit", fontWeight: isActive ? "bold" : "normal" }}>
-            {row.userId?.name ?? "-"}
-          </span>
-        );
-      },
-      sortable: true
-    },
-    { name: "Time In", selector: row => new Date(row.timeIn).toLocaleString(), sortable: true },
-    { name: "Time Out", selector: row => row.timeOut ? new Date(row.timeOut).toLocaleString() : "-", sortable: true },
-    { name: "Total Time (Hours)", selector: row => row.totalTime ? row.totalTime.toFixed(2) : "-", sortable: true },
-    {
-      name: "Paid",
-      cell: (row) =>
-        row.isPaid ? (
-          <span className="text-success fw-bold">Yes</span>
-        ) : (
-          <button
-            className="btn btn-sm btn-danger"
-            onClick={() => markAsPaid(row._id)}
-          >
-            No
-          </button>
-        ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-    }
-  ];
-
-
   return (
     <Container className="mt-4">
-      <Row className="mb-3 text-center">
-        <Col>
-          <h2>Time Logs</h2>
-        </Col>
-      </Row>
+      <h2 className="text-center mb-4">Time Logs</h2>
 
-      <Card>
-        <Card.Body>
-          <DataTable
-            columns={columns}
-            data={logs}
-            progressPending={loading}
-            pagination
-            highlightOnHover
-            striped
-            dense
-          />
-        </Card.Body>
-      </Card>
+      {loading ? (
+        <div className="text-center">
+          <Spinner animation="border" />
+        </div>
+      ) : (
+        <Row>
+          {logs.map((log) => {
+            const timeIn = new Date(log.timeIn);
+            const today = new Date();
+
+            const isActive =
+              timeIn.getDate() === today.getDate() &&
+              timeIn.getMonth() === today.getMonth() &&
+              timeIn.getFullYear() === today.getFullYear() &&
+              !log.timeOut;
+
+            return (
+              <Col key={log._id} xs={6} sm={6} md={4} lg={3} className="mb-3">
+
+                <Card className="shadow-sm h-100">
+
+                  <Card.Body>
+
+                    {/* HEADER */}
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6
+                          style={{
+                            color: isActive ? "green" : "black",
+                            fontWeight: isActive ? "bold" : "normal",
+                            marginBottom: 0,
+                          }}
+                        >
+                          {log.userId?.name || "Unknown User"}
+                        </h6>
+
+                        <small className="text-muted">
+                          {log.userId?.email}
+                        </small>
+                      </div>
+
+                     {/* {!log.isPaid ? (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => markAsPaid(log._id)}
+                        >
+                          Pay
+                        </Button>
+                      ) : (
+                        <span className="text-success fw-bold">Paid</span>
+                      )}*/}
+                    </div>
+
+                    <hr />
+
+                    {/* TIME INFO */}
+                    <p className="mb-1">
+                      <strong>Time In:</strong>{" "}
+                      {log.timeIn
+                        ? new Date(log.timeIn).toLocaleString()
+                        : "-"}
+                    </p>
+
+                    <p className="mb-1">
+                      <strong>Time Out:</strong>{" "}
+                      {log.timeOut
+                        ? new Date(log.timeOut).toLocaleString()
+                        : "-"}
+                    </p>
+
+                    <p className="mb-2">
+                      <strong>Total Hours:</strong>{" "}
+                      {log.totalTime ? log.totalTime.toFixed(2) : "-"}
+                    </p>
+
+                    {/* TASKS */}
+                    <div>
+                      <strong>Tasks:</strong>
+
+                      <div className="mt-2">
+                        {log.tasks?.length ? (
+                          log.tasks.map((task, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                background: "#000",
+                                color: "#fff",
+                                padding: "6px 10px",
+                                borderRadius: "6px",
+                                marginBottom: "5px",
+                                fontSize: "14px",
+                              }}
+                            >
+                              • {task}
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-muted">No tasks</span>
+                        )}
+                      </div>
+                    </div>
+
+                  </Card.Body>
+
+                </Card>
+
+              </Col>
+            );
+          })}
+        </Row>
+      )}
     </Container>
   );
 };

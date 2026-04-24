@@ -255,7 +255,7 @@ export default function Items() {
         <Row className="g-3">
           {filteredItems.length === 0 && <Col><p className="text-center">No items found.</p></Col>}
           {filteredItems.map(item => (
-            <Col key={item._id} xs={12} sm={6} md={4}>
+            <Col key={item._id} xs={6} sm={6} md={4}>
               <Card className="h-100 hover-grow">
                 <Card.Body className="d-flex flex-column p-3"> {/* reduced padding */}
                   <Card.Title className="mb-1"> {item.itemName}</Card.Title>
