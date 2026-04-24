@@ -86,7 +86,7 @@ const AllTimeLogs = () => {
                       <div>
                         <h6
                           style={{
-                            color: isActive ? "green" : "black",
+                            color: isActive ? "green" : "white",
                             fontWeight: isActive ? "bold" : "normal",
                             marginBottom: 0,
                           }}
