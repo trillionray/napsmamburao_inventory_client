@@ -175,6 +175,7 @@ const AllTimeLogs = () => {
                       {editingId !== log._id && (
                         <div className="w-100 w-md-auto d-flex justify-content-end mt-2  mt-md-0">
                           <Button
+                            className="bg-warning text-dark border-0"
                             size="sm"
                             onClick={() => handleEditClick(log)}
                           >
@@ -243,21 +244,21 @@ const AllTimeLogs = () => {
                         {/* VIEW MODE */}
 
                         <p className="mb-1">
-                          <strong>Time In:</strong>{" "}
+                          <strong className="text-info">Time In:</strong>{" "}
                           {log.timeIn
                             ? new Date(log.timeIn).toLocaleString()
                             : "-"}
                         </p>
 
                         <p className="mb-1">
-                          <strong>Time Out:</strong>{" "}
+                          <strong className="text-info">Time Out:</strong>{" "}
                           {log.timeOut
                             ? new Date(log.timeOut).toLocaleString()
                             : "-"}
                         </p>
 
                         <p className="mb-2">
-                          <strong>Total Hours:</strong>{" "}
+                          <strong className="text-info">Total Hours:</strong>{" "}
                           {log.totalTime
                             ? log.totalTime.toFixed(2)
                             : "-"}
