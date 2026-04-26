@@ -69,7 +69,7 @@ export default function Login() {
   }, [email, password]);
 
   if (user.id) {
-    return <Navigate to="/items" />;
+    return <Navigate to="/mytimelogs" />;
   }
 
   return (
