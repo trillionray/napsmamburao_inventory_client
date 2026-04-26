@@ -154,7 +154,8 @@ const AllTimeLogs = () => {
                   <Card.Body>
 
                     {/* ✅ HEADER (ALWAYS VISIBLE) */}
-                    <div className="d-flex justify-content-between align-items-center">
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                      
                       <div>
                         <h6
                           style={{
@@ -172,13 +173,16 @@ const AllTimeLogs = () => {
                       </div>
 
                       {editingId !== log._id && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleEditClick(log)}
-                        >
-                          Time Correction
-                        </Button>
+                        <div className="w-100 w-md-auto d-flex justify-content-end mt-2  mt-md-0">
+                          <Button
+                            size="sm"
+                            onClick={() => handleEditClick(log)}
+                          >
+                            Correction
+                          </Button>
+                        </div>
                       )}
+
                     </div>
 
                     <hr />
