@@ -10,7 +10,6 @@ const AllTimeLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     timeIn: "",
@@ -18,10 +17,10 @@ const AllTimeLogs = () => {
     tasks: ""
   });
 
-
   const API_URL = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem("token");
 
+  // ✅ Fetch logs
   const fetchAllLogs = async () => {
     setLoading(true);
     try {
@@ -39,27 +38,7 @@ const AllTimeLogs = () => {
     }
   };
 
-  const markAsPaid = async (timelogId) => {
-    try {
-      const res = await fetch(`${API_URL}/timelogs/${timelogId}/paid`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) throw new Error("Failed to mark as paid");
-
-      notyf.success("Marked as paid");
-      fetchAllLogs();
-    } catch (error) {
-      console.error(error);
-      notyf.error("Unable to update paid status");
-    }
-  };
-
-
+  // ✅ Convert DB date → input (LOCAL TIME)
   const formatForInput = (date) => {
     if (!date) return "";
 
@@ -74,7 +53,13 @@ const AllTimeLogs = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
+  // ✅ Convert input → UTC (CRITICAL FIX)
+  const toUTCISOString = (localDateTime) => {
+    if (!localDateTime) return null;
+    return new Date(localDateTime).toISOString();
+  };
 
+  // ✅ Edit click
   const handleEditClick = (log) => {
     setEditingId(log._id);
 
@@ -85,6 +70,7 @@ const AllTimeLogs = () => {
     });
   };
 
+  // ✅ Handle input change
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -92,37 +78,50 @@ const AllTimeLogs = () => {
     });
   };
 
-
+  // ✅ Save update
   const handleSave = async (id) => {
-  try {
-    const res = await fetch(`${API_URL}/timelogs/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        timeIn: formData.timeIn,
-        timeOut: formData.timeOut,
-        tasks: formData.tasks.split(",").map(t => t.trim())
-      }),
-    });
+    try {
 
-    const data = await res.json(); // 👈 ADD THIS
-    console.log(data)
+      // 🔒 Validate time
+      if (formData.timeIn && formData.timeOut) {
+        if (new Date(formData.timeOut) < new Date(formData.timeIn)) {
+          notyf.error("Time Out cannot be earlier than Time In");
+          return;
+        }
+      }
 
-    if (!res.ok) throw new Error();
+      const res = await fetch(`${API_URL}/timelogs/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // 🔥 FIXED: send UTC
+          timeIn: toUTCISOString(formData.timeIn),
+          timeOut: toUTCISOString(formData.timeOut),
 
-    notyf.success("Updated successfully");
-    setEditingId(null);
-    fetchAllLogs();
+          // 🔥 FIXED: clean tasks
+          tasks: formData.tasks
+            ? formData.tasks.split(",").map(t => t.trim()).filter(Boolean)
+            : []
+        }),
+      });
 
-  } catch (err) {
-    console.log(err)
-    notyf.error("Update failed");
-  }
-};
+      const data = await res.json();
+      console.log(data);
 
+      if (!res.ok) throw new Error(data.message || "Update failed");
+
+      notyf.success("Updated successfully");
+      setEditingId(null);
+      fetchAllLogs();
+
+    } catch (err) {
+      console.error(err);
+      notyf.error(err.message || "Update failed");
+    }
+  };
 
   useEffect(() => {
     fetchAllLogs();
@@ -149,13 +148,12 @@ const AllTimeLogs = () => {
               !log.timeOut;
 
             return (
-              <Col key={log._id} xs={6} sm={6} md={4} lg={3} className="mb-3">
+              <Col key={log._id} xs={12} sm={6} md={4} lg={3} className="mb-3">
                 <Card className="shadow-sm h-100">
                   <Card.Body>
 
-                    {/* ✅ HEADER (ALWAYS VISIBLE) */}
+                    {/* HEADER */}
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                      
                       <div>
                         <h6
                           style={{
@@ -173,7 +171,7 @@ const AllTimeLogs = () => {
                       </div>
 
                       {editingId !== log._id && (
-                        <div className="w-100 w-md-auto d-flex justify-content-end mt-2  mt-md-0">
+                        <div className="w-100 d-flex justify-content-end mt-2 mt-md-0">
                           <Button
                             className="bg-warning text-dark border-0"
                             size="sm"
@@ -183,16 +181,13 @@ const AllTimeLogs = () => {
                           </Button>
                         </div>
                       )}
-
                     </div>
 
                     <hr />
 
-                    {/* 🔁 CONTENT (TOGGLES) */}
+                    {/* CONTENT */}
                     {editingId === log._id ? (
                       <>
-                        {/* EDIT MODE */}
-
                         <div className="mb-2">
                           <strong>Time In:</strong>
                           <input
@@ -216,7 +211,7 @@ const AllTimeLogs = () => {
                         </div>
 
                         <div className="mb-2">
-                          <strong>Tasks (comma separated):</strong>
+                          <strong>Tasks:</strong>
                           <input
                             type="text"
                             name="tasks"
@@ -241,8 +236,6 @@ const AllTimeLogs = () => {
                       </>
                     ) : (
                       <>
-                        {/* VIEW MODE */}
-
                         <p className="mb-1">
                           <strong className="text-info">Time In:</strong>{" "}
                           {log.timeIn
