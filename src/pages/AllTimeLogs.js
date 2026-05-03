@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import { Container, Row, Col, Card, Button, Spinner } from "react-bootstrap";
+import { Container, Button, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
+import DataTable from "react-data-table-component";
 
 const notyf = new Notyf();
 
 const AllTimeLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
+  // EDIT STATE
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     timeIn: "",
@@ -20,7 +23,7 @@ const AllTimeLogs = () => {
   const API_URL = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem("token");
 
-  // ✅ Fetch logs
+  // ================= FETCH =================
   const fetchAllLogs = async () => {
     setLoading(true);
     try {
@@ -31,46 +34,63 @@ const AllTimeLogs = () => {
       const data = await res.json();
       setLogs(data.timelogs || []);
     } catch (error) {
-      console.error(error);
       notyf.error("Failed to fetch time logs");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Convert DB date → input (LOCAL TIME)
-  const formatForInput = (date) => {
-    if (!date) return "";
+  // ================= CORRECTION ACTION =================
+  const handleCorrectionAction = async (id, status) => {
+    try {
+      setActionLoading(true);
 
+      const res = await fetch(`${API_URL}/timelogs/${id}/handle-correction`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      notyf.success(`Correction ${status}`);
+      fetchAllLogs();
+    } catch (err) {
+      notyf.error(err.message || "Action failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ================= FIX: SAFE LOCAL TIME FORMAT =================
+  const formatLocal = (date) => {
+    if (!date) return "";
     const d = new Date(date);
 
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
 
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    return local.toISOString().slice(0, 16);
   };
 
-  // ✅ Convert input → UTC (CRITICAL FIX)
-  const toUTCISOString = (localDateTime) => {
-    if (!localDateTime) return null;
-    return new Date(localDateTime).toISOString();
-  };
+  const toUTC = (val) => (val ? new Date(val).toISOString() : null);
 
-  // ✅ Edit click
+  // ================= EDIT =================
   const handleEditClick = (log) => {
     setEditingId(log._id);
 
     setFormData({
-      timeIn: formatForInput(log.timeIn),
-      timeOut: formatForInput(log.timeOut),
+      timeIn: formatLocal(log.timeIn),
+      timeOut: formatLocal(log.timeOut),
       tasks: log.tasks?.join(", ") || ""
     });
   };
 
-  // ✅ Handle input change
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -78,18 +98,8 @@ const AllTimeLogs = () => {
     });
   };
 
-  // ✅ Save update
   const handleSave = async (id) => {
     try {
-
-      // 🔒 Validate time
-      if (formData.timeIn && formData.timeOut) {
-        if (new Date(formData.timeOut) < new Date(formData.timeIn)) {
-          notyf.error("Time Out cannot be earlier than Time In");
-          return;
-        }
-      }
-
       const res = await fetch(`${API_URL}/timelogs/${id}`, {
         method: "PUT",
         headers: {
@@ -97,11 +107,8 @@ const AllTimeLogs = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // 🔥 FIXED: send UTC
-          timeIn: toUTCISOString(formData.timeIn),
-          timeOut: toUTCISOString(formData.timeOut),
-
-          // 🔥 FIXED: clean tasks
+          timeIn: toUTC(formData.timeIn),
+          timeOut: toUTC(formData.timeOut),
           tasks: formData.tasks
             ? formData.tasks.split(",").map(t => t.trim()).filter(Boolean)
             : []
@@ -109,16 +116,14 @@ const AllTimeLogs = () => {
       });
 
       const data = await res.json();
-      console.log(data);
 
-      if (!res.ok) throw new Error(data.message || "Update failed");
+      if (!res.ok) throw new Error(data.message);
 
-      notyf.success("Updated successfully");
+      notyf.success("Time updated");
       setEditingId(null);
       fetchAllLogs();
 
     } catch (err) {
-      console.error(err);
       notyf.error(err.message || "Update failed");
     }
   };
@@ -126,6 +131,111 @@ const AllTimeLogs = () => {
   useEffect(() => {
     fetchAllLogs();
   }, []);
+
+  // ================= TABLE =================
+  const columns = [
+    {
+      name: "Staff",
+      selector: row => row.userId?.name || "Unknown",
+      cell: row => {
+        const isActive = !row.timeOut;
+        const isToday =
+          new Date(row.timeIn).toDateString() === new Date().toDateString();
+
+        return (
+          <span
+            style={{
+              color: isActive ? "green" : isToday ? "blue" : "inherit",
+              fontWeight: "bold",
+            }}
+          >
+            {row.userId?.name || "Unknown"}
+          </span>
+        );
+      },
+      sortable: true,
+    },
+    {
+      name: "Date",
+      selector: row => new Date(row.timeIn).toLocaleDateString(),
+    },
+    {
+      name: "Time In",
+      selector: row => row.timeIn ? new Date(row.timeIn).toLocaleString() : "-",
+    },
+    {
+      name: "Time Out",
+      selector: row => row.timeOut ? new Date(row.timeOut).toLocaleString() : "-",
+    },
+    {
+      name: "Total Hours",
+      selector: row => row.totalTime ? row.totalTime.toFixed(2) : "-",
+    },
+    {
+      name: "Correction",
+      cell: row => (
+        <span
+          style={{
+            color:
+              row.correctionStatus === "approved"
+                ? "green"
+                : row.correctionStatus === "disapproved"
+                ? "red"
+                : row.correctionStatus === "filed"
+                ? "orange"
+                : "gray",
+            fontWeight: "bold",
+          }}
+        >
+          {row.correctionStatus?.toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      name: "Actions",
+      width: "260px",
+      cell: row => (
+        <div className="d-flex gap-2 flex-nowrap align-items-center">
+
+          {/* ADMIN EDIT */}
+          <Button
+            size="sm"
+            variant="warning"
+            style={{ whiteSpace: "nowrap" }}
+            onClick={() => handleEditClick(row)}
+          >
+            Edit
+          </Button>
+
+          {/* CORRECTION ACTION */}
+          {row.correctionStatus === "filed" ? (
+            <>
+              <Button
+                size="sm"
+                variant="success"
+                disabled={actionLoading}
+                onClick={() => handleCorrectionAction(row._id, "approved")}
+              >
+                Approve
+              </Button>
+
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={actionLoading}
+                onClick={() => handleCorrectionAction(row._id, "disapproved")}
+              >
+                Reject
+              </Button>
+            </>
+          ) : (
+            <span className="text-muted">—</span>
+          )}
+
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Container className="mt-4">
@@ -136,153 +246,56 @@ const AllTimeLogs = () => {
           <Spinner animation="border" />
         </div>
       ) : (
-        <Row>
-          {logs.map((log) => {
-            const timeIn = new Date(log.timeIn);
-            const today = new Date();
+        <>
+          <DataTable
+            columns={columns}
+            data={logs}
+            pagination
+            highlightOnHover
+            responsive
+            dense
+          />
 
-            const isActive =
-              timeIn.getDate() === today.getDate() &&
-              timeIn.getMonth() === today.getMonth() &&
-              timeIn.getFullYear() === today.getFullYear() &&
-              !log.timeOut;
+          {/* EDIT PANEL */}
+          {editingId && (
+            <div className="mt-3 p-3 border rounded">
+              <h5>Edit Time</h5>
 
-            return (
-              <Col key={log._id} xs={12} sm={6} md={4} lg={3} className="mb-3">
-                <Card className="shadow-sm h-100">
-                  <Card.Body>
+              <input
+                type="datetime-local"
+                name="timeIn"
+                className="form-control mb-2"
+                value={formData.timeIn}
+                onChange={handleChange}
+              />
 
-                    {/* HEADER */}
-                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                      <div>
-                        <h6
-                          style={{
-                            color: isActive ? "green" : "white",
-                            fontWeight: isActive ? "bold" : "normal",
-                            marginBottom: 0,
-                          }}
-                        >
-                          {log.userId?.name || "Unknown User"}
-                        </h6>
+              <input
+                type="datetime-local"
+                name="timeOut"
+                className="form-control mb-2"
+                value={formData.timeOut}
+                onChange={handleChange}
+              />
 
-                        <small className="text-muted">
-                          {log.userId?.email}
-                        </small>
-                      </div>
+              <input
+                type="text"
+                name="tasks"
+                className="form-control mb-2"
+                value={formData.tasks}
+                onChange={handleChange}
+              />
 
-                      {editingId !== log._id && (
-                        <div className="w-100 d-flex justify-content-end mt-2 mt-md-0">
-                          <Button
-                            className="bg-warning text-dark border-0"
-                            size="sm"
-                            onClick={() => handleEditClick(log)}
-                          >
-                            Correction
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    <hr />
-
-                    {/* CONTENT */}
-                    {editingId === log._id ? (
-                      <>
-                        <div className="mb-2">
-                          <strong>Time In:</strong>
-                          <input
-                            type="datetime-local"
-                            name="timeIn"
-                            value={formData.timeIn}
-                            onChange={handleChange}
-                            className="form-control"
-                          />
-                        </div>
-
-                        <div className="mb-2">
-                          <strong>Time Out:</strong>
-                          <input
-                            type="datetime-local"
-                            name="timeOut"
-                            value={formData.timeOut}
-                            onChange={handleChange}
-                            className="form-control"
-                          />
-                        </div>
-
-                        <div className="mb-2">
-                          <strong>Tasks:</strong>
-                          <input
-                            type="text"
-                            name="tasks"
-                            value={formData.tasks}
-                            onChange={handleChange}
-                            className="form-control"
-                          />
-                        </div>
-
-                        <div className="d-flex gap-2 mt-2">
-                          <Button size="sm" onClick={() => handleSave(log._id)}>
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setEditingId(null)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="mb-1">
-                          <strong className="text-info">Time In:</strong>{" "}
-                          {log.timeIn
-                            ? new Date(log.timeIn).toLocaleString()
-                            : "-"}
-                        </p>
-
-                        <p className="mb-1">
-                          <strong className="text-info">Time Out:</strong>{" "}
-                          {log.timeOut
-                            ? new Date(log.timeOut).toLocaleString()
-                            : "-"}
-                        </p>
-
-                        <p className="mb-2">
-                          <strong className="text-info">Total Hours:</strong>{" "}
-                          {log.totalTime
-                            ? log.totalTime.toFixed(2)
-                            : "-"}
-                        </p>
-
-                        <div>
-                          <strong>Tasks:</strong>
-                          <div className="mt-2">
-                            {log.tasks?.length ? (
-                              log.tasks.map((task, i) => (
-                                <div
-                                  key={i}
-                                  className="bg-dark text-white p-2 rounded mb-1"
-                                >
-                                  • {task}
-                                </div>
-                              ))
-                            ) : (
-                              <span className="text-muted">No tasks</span>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                  </Card.Body>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
+              <div className="d-flex gap-2">
+                <Button size="sm" onClick={() => handleSave(editingId)}>
+                  Save
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setEditingId(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </Container>
   );

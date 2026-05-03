@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
 import { Container, Row, Col, Button, Card, Spinner } from "react-bootstrap";
+import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const notyf = new Notyf();
@@ -42,6 +43,25 @@ const MyTimeLogs = () => {
   };
 
   // ================= CLOCK IN =================
+  const quickClockIn = () => {
+    setActionLoading(true);
+
+    fetch(`${API_URL}/timelogs/time-in`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ tasks: [] }),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        notyf.success("Clock In successful");
+        fetchTimeLogs();
+      })
+      .finally(() => setActionLoading(false));
+  };
+
   const startClockIn = () => {
     setIsPreparingClockIn(true);
     setTasks([]);
@@ -49,11 +69,6 @@ const MyTimeLogs = () => {
   };
 
   const handleSubmitClockIn = () => {
-    if (tasks.length === 0) {
-      notyf.error("Please add at least one task.");
-      return;
-    }
-
     setActionLoading(true);
 
     fetch(`${API_URL}/timelogs/time-in`, {
@@ -134,6 +149,98 @@ const MyTimeLogs = () => {
       .finally(() => setActionLoading(false));
   };
 
+  const handleFileCorrection = (id) => {
+    setActionLoading(true);
+
+    fetch(`${API_URL}/timelogs/${id}/file-correction`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        notyf.success(data.message);
+        fetchTimeLogs();
+      })
+      .catch(() => notyf.error("Error filing correction"))
+      .finally(() => setActionLoading(false));
+  };
+
+  // ================= DATA TABLE =================
+const columns = [
+  {
+    name: "Date",
+    selector: (row) =>
+      row.timeIn ? new Date(row.timeIn).toLocaleDateString() : "-",
+    sortable: true,
+  },
+  {
+    name: "Time In",
+    selector: (row) =>
+      row.timeIn ? new Date(row.timeIn).toLocaleTimeString() : "-",
+  },
+  {
+    name: "Time Out",
+    selector: (row) =>
+      row.timeOut ? new Date(row.timeOut).toLocaleTimeString() : "-",
+  },
+  {
+    name: "Total Hours",
+    selector: (row) =>
+      row.totalTime ? row.totalTime.toFixed(2) : "-",
+  },
+  {
+    name: "Correction",
+    cell: (row) => (
+      <span
+        style={{
+          fontWeight: "bold",
+          color:
+            row.correctionStatus === "approved"
+              ? "green"
+              : row.correctionStatus === "disapproved"
+              ? "red"
+              : row.correctionStatus === "filed"
+              ? "orange"
+              : "gray",
+        }}
+      >
+        {row.correctionStatus.toUpperCase()}
+      </span>
+    ),
+  },
+ {
+   name: "Actions",
+   width: "180px", // fixed column width to prevent resizing
+   cell: (row) => (
+     <div
+       style={{
+         display: "flex",
+         gap: "6px",
+         flexWrap: "nowrap",   // prevents wrapping
+         alignItems: "center",
+         whiteSpace: "nowrap", // prevents text wrapping
+       }}
+     >
+       <Button size="sm" variant="success" onClick={() => startEdit(row)}>
+         Edit
+       </Button>
+
+       {row.correctionStatus === "none" && !row.isPaid && (
+         <Button
+           size="sm"
+           variant="warning"
+           onClick={() => handleFileCorrection(row._id)}
+           disabled={actionLoading}
+         >
+           File
+         </Button>
+       )}
+     </div>
+   ),
+ }
+];
   return (
     <Container className="mt-4">
       <h2 className="text-center mb-3">My Time Logs</h2>
@@ -142,9 +249,15 @@ const MyTimeLogs = () => {
       <Row className="mb-4 text-center">
         <Col>
           {!isPreparingClockIn ? (
-            <Button variant="success" onClick={startClockIn}>
-              Clock In
-            </Button>
+            <>
+              <Button variant="primary" className="me-2" onClick={quickClockIn}>
+                Clock In
+              </Button>
+
+              {/*<Button variant="success" onClick={startClockIn}>
+                Clock In
+              </Button>*/}
+            </>
           ) : (
             <>
               <Button variant="primary" className="me-2" onClick={handleSubmitClockIn}>
@@ -174,7 +287,6 @@ const MyTimeLogs = () => {
         <Row className="mb-3">
           <Col md={6} className="mx-auto">
             <div className="border rounded p-2 d-flex flex-wrap gap-2">
-
               {tasks.map((task, index) => (
                 <div
                   key={index}
@@ -183,19 +295,12 @@ const MyTimeLogs = () => {
                     color: "#fff",
                     padding: "6px 10px",
                     borderRadius: "8px",
-                    fontSize: "14px",
-                    display: "flex",
-                    alignItems: "center",
                   }}
                 >
                   {task}
                   <span
                     onClick={() => removeTask(index)}
-                    style={{
-                      marginLeft: "8px",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
+                    style={{ marginLeft: "8px", cursor: "pointer" }}
                   >
                     ×
                   </span>
@@ -255,68 +360,23 @@ const MyTimeLogs = () => {
         </Card>
       )}
 
-      {/* ================= LOG CARDS ================= */}
+      {/* ================= TABLE ================= */}
       {loading ? (
         <div className="text-center">
           <Spinner animation="border" />
         </div>
       ) : (
-        <Row>
-          {logs.map((log) => (
-            <Col key={log._id} xs={12} sm={6} md={4} lg={3} className="mb-3">
-
-              <Card className="shadow-sm h-100">
-                <Card.Body>
-
-                  <div className="d-flex justify-content-between">
-                    {/*<strong>My Log</strong>*/}
-                    
-                  </div>
-
-                  <hr />
-
-                  <p><strong>Time In:</strong><br />{new Date(log.timeIn).toLocaleString()}</p>
-                  <p><strong>Time Out:</strong><br />{log.timeOut ? new Date(log.timeOut).toLocaleString() : "-"}</p>
-                  <p><strong>Total Hours:</strong><br />{log.totalTime ? log.totalTime.toFixed(2) : "-"}</p>
-
-                  {/* ================= TASK UI UPDATED ================= */}
-                  <div>
-                    <strong>Tasks:</strong>
-
-                    <Button size="sm" className="mt-3 w-100 bg-success" onClick={() => startEdit(log)}>
-                      Edit
-                    </Button>
-
-                    <div className="mt-2 d-flex flex-column gap-2">
-                      {log.tasks?.length ? (
-                        log.tasks.map((task, i) => (
-                          <div
-                            key={i}
-                            style={{
-                              background: "#000",
-                              color: "#fff",
-                              padding: "6px 10px",
-                              borderRadius: "8px",
-                              fontSize: "14px",
-                            }}
-                          >
-                            • {task}
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-muted">No tasks</span>
-                      )}
-                    </div>
-                  </div>
-
-
-
-                </Card.Body>
-              </Card>
-
-            </Col>
-          ))}
-        </Row>
+        <div style={{ overflowX: "auto" }}>
+          <DataTable
+            columns={columns}
+            data={logs}
+            pagination
+            highlightOnHover
+            responsive
+            striped
+            dense
+          />
+        </div>
       )}
     </Container>
   );
