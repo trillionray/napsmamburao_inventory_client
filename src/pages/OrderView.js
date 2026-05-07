@@ -174,7 +174,7 @@ const OrdersView = () => {
 
             <div class="line">
               <span>${qty} x ${formatMoney(price)}</span>
-              <span>${formatMoney(subtotal)}</span>
+              <span>₱${formatMoney(subtotal)}</span>
             </div>
           </div>
         `;
@@ -186,6 +186,7 @@ const OrdersView = () => {
       <html>
         <head>
           <meta charset="utf-8" />
+
           <meta
             name="viewport"
             content="width=device-width, initial-scale=1.0"
@@ -194,13 +195,18 @@ const OrdersView = () => {
           <title>Receipt</title>
 
           <style>
+            * {
+              box-sizing: border-box;
+            }
+
             body {
               font-family: monospace;
               width: 280px;
               margin: 0 auto;
-              padding: 0px;
+              padding: 10px;
               font-size: 12px;
               color: #000;
+              background: #fff;
             }
 
             .center {
@@ -222,12 +228,13 @@ const OrdersView = () => {
 
             .name {
               font-weight: bold;
-              word-wrap: break-word;
+              word-break: break-word;
             }
 
             .line {
               display: flex;
               justify-content: space-between;
+              gap: 10px;
             }
 
             .total {
@@ -237,13 +244,28 @@ const OrdersView = () => {
 
             .footer {
               text-align: center;
-              margin-top: 12px;
+              margin-top: 14px;
+            }
+
+            .print-btn {
+              width: 100%;
+              padding: 10px;
+              margin-top: 16px;
+              border: none;
+              background: black;
+              color: white;
+              font-size: 14px;
             }
 
             @media print {
+              .print-btn {
+                display: none;
+              }
+
               body {
                 width: 100%;
                 margin: 0;
+                padding: 0;
               }
             }
           </style>
@@ -267,6 +289,7 @@ const OrdersView = () => {
 
           <div>Order: ${orderData.orderName}</div>
           <div>Cashier: ${orderData.staffName}</div>
+
           <div>
             Date:
             ${new Date(orderData.createdAt).toLocaleString()}
@@ -290,40 +313,23 @@ const OrdersView = () => {
             Please come again
           </div>
 
+          <button
+            class="print-btn"
+            onclick="window.print()"
+          >
+            PRINT RECEIPT
+          </button>
+
         </body>
       </html>
     `;
 
-    // ✅ CREATE HIDDEN IFRAME
-    const iframe = document.createElement("iframe");
+    // ✅ MOBILE SAFE
+    const printWindow = window.open("", "_blank");
 
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-
-    document.body.appendChild(iframe);
-
-    const iframeDoc =
-      iframe.contentWindow || iframe.contentDocument;
-
-    iframeDoc.document.open();
-    iframeDoc.document.write(receiptHTML);
-    iframeDoc.document.close();
-
-    // ✅ MOBILE SAFE PRINT
-    setTimeout(() => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-
-      // cleanup
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-
-    }, 500);
+    printWindow.document.open();
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
   };
 
   // ==============================
