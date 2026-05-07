@@ -14,6 +14,10 @@ import Items from './pages/Items';
 import MyTimeLogs from './pages/MyTimeLogs';
 import AllTimeLogs from './pages/AllTimeLogs';
 
+import ProductsPage from './pages/AllTimeLogs';
+import OrdersPage from './pages/OrdersPage';
+import OrderView from './pages/OrderView';
+
 import { Notyf } from 'notyf'; // ✅ Import Notyf
 import 'notyf/notyf.min.css'; // ✅ Add this
 
@@ -89,7 +93,11 @@ function App() {
             <Route path="/mytimelogs" element={<MyTimeLogs />} />
             <Route path="/admin/timelogs" element={<AllTimeLogs />} />
 
-            
+
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/:orderId" element={<OrderView />} />
+
           </Routes>
         </Container>
       </Router>

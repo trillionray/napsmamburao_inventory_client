@@ -26,11 +26,11 @@ export default function AppNavbar() {
 
                 {user.role === "admin" && (
                   <>
+                    <Nav.Link as={NavLink} to="/orders">Orders</Nav.Link>
                     <Nav.Link as={NavLink} to="/items">Inventory</Nav.Link>
                     <Nav.Link as={NavLink} to="/admin/timelogs">AllLogs</Nav.Link>
                   </>
                 )}
-
                 
                 <Nav.Link as={NavLink} to="/mytimelogs">MyLogs</Nav.Link>
                 <Nav.Link as={NavLink} to="/logout">Logout</Nav.Link>
