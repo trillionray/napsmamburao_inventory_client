@@ -159,21 +159,19 @@ const OrdersView = () => {
   };
 
   const printReceipt = (orderData) => {
-    const printWindow = window.open("", "_blank");
-
     const formatMoney = (num) =>
       Number(num || 0).toFixed(2);
 
     const itemsHTML = (orderData.ordered || [])
       .map((item) => {
-        const name = item.productName;
         const qty = Number(item.quantity || 0);
         const price = Number(item.price || 0);
         const subtotal = qty * price;
 
         return `
           <div class="item">
-            <div class="name">${name}</div>
+            <div class="name">${item.productName}</div>
+
             <div class="line">
               <span>${qty} x ${formatMoney(price)}</span>
               <span>${formatMoney(subtotal)}</span>
@@ -183,24 +181,26 @@ const OrdersView = () => {
       })
       .join("");
 
-    printWindow.document.write(`
+    const receiptHTML = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
+
           <title>Receipt</title>
 
           <style>
-            @media print {
-              body {
-                margin: 0;
-              }
-            }
-
             body {
               font-family: monospace;
-              width: 280px; /* 🔥 perfect for 80mm printer */
+              width: 280px;
               margin: 0 auto;
-              padding: 10px;
+              padding: 0px;
               font-size: 12px;
+              color: #000;
             }
 
             .center {
@@ -217,11 +217,12 @@ const OrdersView = () => {
             }
 
             .item {
-              margin-bottom: 6px;
+              margin-bottom: 8px;
             }
 
             .name {
               font-weight: bold;
+              word-wrap: break-word;
             }
 
             .line {
@@ -236,22 +237,40 @@ const OrdersView = () => {
 
             .footer {
               text-align: center;
-              margin-top: 10px;
+              margin-top: 12px;
+            }
+
+            @media print {
+              body {
+                width: 100%;
+                margin: 0;
+              }
             }
           </style>
         </head>
 
         <body>
 
-          <div class="center bold">NAPS RESTAURANT MAMBURAO</div>
-          <div class="center">TIN: 149-826-116-00000</div>
-          <div class="center">CEL NO: 0945 377 8649</div>
+          <div class="center bold">
+            NAPS RESTAURANT MAMBURAO
+          </div>
+
+          <div class="center">
+            TIN: 149-826-116-00000
+          </div>
+
+          <div class="center">
+            CEL NO: 0945 377 8649
+          </div>
 
           <div class="divider"></div>
 
           <div>Order: ${orderData.orderName}</div>
           <div>Cashier: ${orderData.staffName}</div>
-          <div>Date: ${new Date(orderData.createdAt).toLocaleString()}</div>
+          <div>
+            Date:
+            ${new Date(orderData.createdAt).toLocaleString()}
+          </div>
 
           <div class="divider"></div>
 
@@ -267,24 +286,44 @@ const OrdersView = () => {
           <div class="divider"></div>
 
           <div class="footer">
-            Thank you!<br/>
+            Thank you!<br />
             Please come again
           </div>
 
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function () {
-                window.close();
-              };
-            };
-          </script>
-
         </body>
       </html>
-    `);
+    `;
 
-    printWindow.document.close();
+    // ✅ CREATE HIDDEN IFRAME
+    const iframe = document.createElement("iframe");
+
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+
+    document.body.appendChild(iframe);
+
+    const iframeDoc =
+      iframe.contentWindow || iframe.contentDocument;
+
+    iframeDoc.document.open();
+    iframeDoc.document.write(receiptHTML);
+    iframeDoc.document.close();
+
+    // ✅ MOBILE SAFE PRINT
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+
+      // cleanup
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+
+    }, 500);
   };
 
   // ==============================
