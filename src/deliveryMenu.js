@@ -1369,4 +1369,9 @@ const menu = [
 // last id 158
 ];
 
-export default menu;
+const deliveryMenu = menu.map(item => ({
+	...item,
+	price: Math.round(item.price * 1.10)
+}));
+
+export default deliveryMenu;

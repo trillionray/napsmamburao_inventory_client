@@ -7,7 +7,11 @@ const OrdersView = () => {
 
   const [order, setOrder] = useState({
     ordered: [],
-    total: 0,
+    subtotal: 0,
+    discount: 0,
+    grandTotal: 0,
+    pax: 1,
+    discountedPax: 0,
     status: "pending",
   });
 
@@ -18,13 +22,22 @@ const OrdersView = () => {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
 
+  // billing inputs
+  const [pax, setPax] = useState(1);
+  const [discountedPax, setDiscountedPax] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [showDiscount, setShowDiscount] = useState(false);
   // ==============================
   // NORMALIZER
   // ==============================
   const normalizeOrder = (data) => ({
     ...data,
     ordered: Array.isArray(data?.ordered) ? data.ordered : [],
-    total: Number(data?.total || 0),
+    subtotal: Number(data?.subtotal || 0),
+    discount: Number(data?.discount || 0),
+    grandTotal: Number(data?.grandTotal || 0),
+    pax: Number(data?.pax || 1),
+    discountedPax: Number(data?.discountedPax || 0),
     status: data?.status || "pending",
   });
 
@@ -45,7 +58,13 @@ const OrdersView = () => {
       );
 
       const data = await res.json();
-      setOrder(normalizeOrder(data));
+      const normalized = normalizeOrder(data);
+
+      setOrder(normalized);
+
+      setPax(normalized.pax);
+      setDiscountedPax(normalized.discountedPax);
+      setDiscount(normalized.discount);
     } catch (err) {
       console.error(err);
     } finally {
@@ -57,30 +76,62 @@ const OrdersView = () => {
   // LOAD MENU
   // ==============================
   const loadMenu = async () => {
-    const res = await import("../menuData");
+    const res =
+      order?.serviceType?.toLowerCase() === "delivery"
+        ? await import("../deliveryMenu")
+        : await import("../menuData");
+
     setMenu(res.default);
     setFilteredMenu(res.default);
   };
 
   useEffect(() => {
+    if (order?.serviceType) loadMenu();
+  }, [order?.serviceType]);
+
+  useEffect(() => {
     fetchOrder();
-    loadMenu();
   }, [orderId]);
 
   // ==============================
-  // SEARCH
+  // SEARCH MENU
   // ==============================
   useEffect(() => {
     const keyword = search.toLowerCase();
 
     setFilteredMenu(
-      menu.filter((item) =>
-        item.name?.toLowerCase().includes(keyword) ||
-        item.category?.toLowerCase().includes(keyword) ||
-        item.description?.toLowerCase().includes(keyword)
+      menu.filter(
+        (item) =>
+          item.name?.toLowerCase().includes(keyword) ||
+          item.category?.toLowerCase().includes(keyword) ||
+          item.description?.toLowerCase().includes(keyword)
       )
     );
   }, [search, menu]);
+
+  // ==============================
+  // APPLY DISCOUNT SETTINGS
+  // ==============================
+  const applyDiscount = async () => {
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/discount`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          pax,
+          discountedPax,
+          discount,
+        }),
+      }
+    );
+
+    const data = await res.json();
+    setOrder(normalizeOrder(data));
+  };
 
   // ==============================
   // ADD ITEM
@@ -109,9 +160,9 @@ const OrdersView = () => {
   };
 
   // ==============================
-  // UPDATE QTY (0 = REMOVE)
+  // UPDATE QTY
   // ==============================
-  const updateQuantity = async (productName, newQty) => {
+  const updateQuantity = async (productName, quantity) => {
     if (order.status === "billed") return;
 
     const res = await fetch(
@@ -122,10 +173,7 @@ const OrdersView = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          productName,
-          quantity: newQty,
-        }),
+        body: JSON.stringify({ productName, quantity }),
       }
     );
 
@@ -133,6 +181,75 @@ const OrdersView = () => {
     setOrder(normalizeOrder(data));
   };
 
+  const printReceipt = (orderData) => {
+    const formatMoney = (num) => Number(num || 0).toFixed(2);
+
+    const itemsHTML = (orderData.ordered || [])
+      .map((item) => {
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+
+        return `
+          <div class="item">
+            <div><b>${item.productName}</b></div>
+            <div>${qty} x ${formatMoney(price)} = ₱${formatMoney(qty * price)}</div>
+          </div>
+        `;
+      })
+      .join("");
+
+    const html = `
+      <html>
+        <body style="font-family: monospace; width:280px; margin:auto;">
+          <div style="text-align:center; font-weight:bold;">
+            NAPS RESTAURANT MAMBURAO
+          </div>
+
+          <div style="text-align:center;">
+            TIN: 149-826-116-00000
+          </div>
+
+          <div style="text-align:center;">
+            CEL NO: 0945 377 8649
+
+          <div>=======================</div>
+          <div>Order Id: ${orderData._id}</div>
+          <div>Order: ${orderData.orderName}</div>
+          <div>Cashier: ${orderData.staffName}</div>
+          <div>
+            Date: ${new Date(orderData.createdAt).toLocaleString()}
+          </div>
+
+          <div>=======================</div>
+
+          ${itemsHTML}
+
+          <div>=======================</div>
+
+          <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
+          <div>Pax: ${orderData.pax}</div>
+          <div>Discounted Pax: ${orderData.discountedPax}</div>
+
+          <div>
+            Discount: ₱${formatMoney(orderData.discount)} 
+            (${orderData.discount}%)
+          </div>
+
+          <div><b>Grand Total: ₱${formatMoney(orderData.grandTotal)}</b></div>
+          <div>=======================</div>
+          <div style="text-align:center;">Naps Sarap Kain po! <br /> Thank you!</div>
+
+          <script>
+            window.onload = () => window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+  };
   // ==============================
   // BILL OUT
   // ==============================
@@ -150,301 +267,146 @@ const OrdersView = () => {
     );
 
     const data = await res.json();
-    const updatedOrder = normalizeOrder(data);
+    const updated = normalizeOrder(data);
 
-    setOrder(updatedOrder);
+    setOrder(updated);
 
-    // 🧾 trigger receipt print AFTER update
-    printReceipt(updatedOrder);
-  };
-
-  const printReceipt = (orderData) => {
-    const formatMoney = (num) =>
-      Number(num || 0).toFixed(2);
-
-    const itemsHTML = (orderData.ordered || [])
-      .map((item) => {
-        const qty = Number(item.quantity || 0);
-        const price = Number(item.price || 0);
-        const subtotal = qty * price;
-
-        return `
-          <div class="item">
-            <div class="name">${item.productName}</div>
-
-            <div class="line">
-              <span>${qty} x ${formatMoney(price)}</span>
-              <span>₱${formatMoney(subtotal)}</span>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    const receiptHTML = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-          />
-
-          <title>Receipt</title>
-
-          <style>
-            * {
-              box-sizing: border-box;
-            }
-
-            body {
-              font-family: monospace;
-              width: 280px;
-              margin: 0 auto;
-              padding: 10px;
-              font-size: 12px;
-              color: #000;
-              background: #fff;
-            }
-
-            .center {
-              text-align: center;
-            }
-
-            .bold {
-              font-weight: bold;
-            }
-
-            .divider {
-              border-top: 1px dashed #000;
-              margin: 8px 0;
-            }
-
-            .item {
-              margin-bottom: 8px;
-            }
-
-            .name {
-              font-weight: bold;
-              word-break: break-word;
-            }
-
-            .line {
-              display: flex;
-              justify-content: space-between;
-              gap: 10px;
-            }
-
-            .total {
-              font-size: 14px;
-              font-weight: bold;
-            }
-
-            .footer {
-              text-align: center;
-              margin-top: 14px;
-            }
-
-            .print-btn {
-              width: 100%;
-              padding: 10px;
-              margin-top: 16px;
-              border: none;
-              background: black;
-              color: white;
-              font-size: 14px;
-            }
-
-            @media print {
-              .print-btn {
-                display: none;
-              }
-
-              body {
-                width: 100%;
-                margin: 0;
-                padding: 0;
-              }
-            }
-          </style>
-        </head>
-
-        <body>
-
-          <div class="center bold">
-            NAPS RESTAURANT MAMBURAO
-          </div>
-
-          <div class="center">
-            TIN: 149-826-116-00000
-          </div>
-
-          <div class="center">
-            CEL NO: 0945 377 8649
-          </div>
-
-          <div class="divider"></div>
-
-          <div>Order: ${orderData.orderName}</div>
-          <div>Cashier: ${orderData.staffName}</div>
-
-          <div>
-            Date:
-            ${new Date(orderData.createdAt).toLocaleString()}
-          </div>
-
-          <div class="divider"></div>
-
-          ${itemsHTML}
-
-          <div class="divider"></div>
-
-          <div class="line total">
-            <span>TOTAL</span>
-            <span>₱${formatMoney(orderData.total)}</span>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="footer">
-            Thank you!<br />
-            Please come again
-          </div>
-
-          <button
-            class="print-btn"
-            onclick="window.print()"
-          >
-            PRINT RECEIPT
-          </button>
-
-        </body>
-      </html>
-    `;
-
-    // ✅ MOBILE SAFE
-    const printWindow = window.open("", "_blank");
-
-    printWindow.document.open();
-    printWindow.document.write(receiptHTML);
-    printWindow.document.close();
-  };
-
-  // ==============================
-  // DELETE ORDER
-  // ==============================
-  const handleRemoveOrder = async () => {
-    if (!window.confirm("Delete this order?")) return;
-
-    await fetch(`${process.env.REACT_APP_API_URL2}/orders/${orderId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-
-    navigate("/orders");
+    // ✅ IMPORTANT: wait for UI state then print
+    setTimeout(() => {
+      printReceipt(updated);
+    }, 300);
   };
 
   if (loading) return <p>Loading order...</p>;
-
-  const orderedItems = order?.ordered || [];
 
   return (
     <div className="container mt-4">
 
       {/* HEADER */}
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between">
         <h2>{order.orderName}</h2>
 
         <div className="d-flex gap-2">
+          <button className="btn btn-warning" onClick={handleBillOut}>
+            Bill Out
+          </button>
+          <button className="btn btn-danger" onClick={() => navigate("/orders")}>
+            Back
+          </button>
+        </div>
+      </div>
 
-          
-            <button className="btn btn-warning" onClick={handleBillOut}>
-              Bill Out
-            </button>
-        
+      <p>Staff: {order.staffName}</p>
+      <p>Status: {order.status}</p>
 
-          <button className="btn btn-danger" onClick={handleRemoveOrder}>
-            Remove
+      <hr />
+
+      {/* BILLING */}
+      <h5>Billing</h5>
+
+      <p>Subtotal: ₱{order.subtotal}</p>
+
+      {/* BETWEEN SUBTOTAL AND GRAND TOTAL */}
+      <button
+        className="btn btn-outline-light mb-2"
+        onClick={() => setShowDiscount(!showDiscount)}
+      >
+        {showDiscount ? "Hide Discount" : "Show Discount"}
+      </button>
+
+      {showDiscount && (
+        <div className="card p-3 mb-3">
+
+          <h6>Discount</h6>
+
+          <label>PAX</label>
+          <input
+            className="form-control mb-2"
+            type="number"
+            value={pax}
+            onChange={(e) => setPax(Number(e.target.value))}
+          />
+
+          <label>Discounted PAX</label>
+          <input
+            className="form-control mb-2"
+            type="number"
+            value={discountedPax}
+            min="0"
+            max={pax}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+
+              // prevent exceeding pax
+              if (value > pax) {
+                setDiscountedPax(pax);
+                return;
+              }
+
+              setDiscountedPax(value);
+            }}
+          />
+
+          <label>Discount %</label>
+          <input
+            className="form-control mb-2"
+            type="number"
+            value={discount}
+            onChange={(e) => setDiscount(Number(e.target.value))}
+          />
+
+          <button className="btn btn-primary" onClick={applyDiscount}>
+            Apply
           </button>
 
         </div>
-      </div>
-      <p>
-        <strong>Date:</strong>{" "}
-        {order.createdAt
-          ? new Date(order.createdAt).toLocaleString()
-          : "N/A"}
-      </p>
-      <p><strong>Staff:</strong> {order.staffName}</p>
-      <p><strong>Service:</strong> {order.serviceType}</p>
-      <p><strong>Status:</strong> {order.status}</p>
-      <p><strong>Total:</strong> ₱{order.total}</p>
+      )}
+
+      <p>Discount: {order.discount}% = P{order.subtotal / pax * discountedPax * (order.discount /100)}</p>
+      <h5>Grand Total: ₱{order.grandTotal}</h5>
 
       <hr />
 
       {/* ITEMS */}
-      <h4>Ordered Items</h4>
+      <h4>Items</h4>
 
-      <button
-        className="btn btn-success mb-3"
-        disabled={order.status === "billed"}
-        onClick={() => setShowModal(true)}
-      >
+      <button className="btn btn-success mb-3" onClick={() => setShowModal(true)}>
         Add Items
       </button>
 
-      <ul className="list-group mb-4">
-        {orderedItems.map((item, index) => {
-          const price = Number(item.price || 0);
-          const qty = Number(item.quantity || 0);
-          const subtotal = price * qty;
+      <ul className="list-group">
+        {order.ordered.map((item, i) => (
+          <li key={i} className="list-group-item d-flex justify-content-between">
 
-          return (
-            <li
-              key={index}
-              className="list-group-item d-flex justify-content-between align-items-center"
-            >
-              {/* ITEM INFO */}
-              <div>
-                <div><strong>{item.productName}</strong></div>
-                <small className="text-muted">
-                  ₱{price.toFixed(2)} × {qty} = ₱{subtotal.toFixed(2)}
-                </small>
-              </div>
+            <div>
+              <b>{item.productName}</b><br />
+              ₱{item.price} x {item.quantity}
+            </div>
 
-              {/* CONTROLS */}
-              <div className="d-flex gap-2 align-items-center">
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() =>
+                  updateQuantity(item.productName, item.quantity - 1)
+                }
+              >
+                -
+              </button>
 
-                <button
-                  className="btn btn-sm btn-outline-danger"
-                  disabled={order.status === "billed"}
-                  onClick={() =>
-                    updateQuantity(item.productName, item.quantity - 1)
-                  }
-                >
-                  -
-                </button>
+              <span>{item.quantity}</span>
 
-                <span>{qty}</span>
+              <button
+                className="btn btn-success btn-sm"
+                onClick={() =>
+                  updateQuantity(item.productName, item.quantity + 1)
+                }
+              >
+                +
+              </button>
+            </div>
 
-                <button
-                  className="btn btn-sm btn-outline-success"
-                  disabled={order.status === "billed"}
-                  onClick={() =>
-                    updateQuantity(item.productName, item.quantity + 1)
-                  }
-                >
-                  +
-                </button>
-
-              </div>
-            </li>
-          );
-        })}
+          </li>
+        ))}
       </ul>
 
       {/* MODAL */}
@@ -454,7 +416,7 @@ const OrdersView = () => {
             <div className="modal-content">
 
               <div className="modal-header">
-                <h5>Select Items</h5>
+                <h5>Add Items</h5>
                 <button className="btn-close" onClick={() => setShowModal(false)} />
               </div>
 
@@ -462,31 +424,21 @@ const OrdersView = () => {
 
                 <input
                   className="form-control mb-3"
-                  placeholder="Search..."
+                  placeholder="Search menu..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
 
-                <table className="table table-striped">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Category</th>
-                      <th>Price</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-
+                <table className="table">
                   <tbody>
-                    {filteredMenu.map((product) => (
-                      <tr key={product.id}>
-                        <td>{product.name}</td>
-                        <td>{product.category}</td>
-                        <td>₱{product.price}</td>
+                    {filteredMenu.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.name}</td>
+                        <td>₱{p.price}</td>
                         <td>
                           <button
                             className="btn btn-primary btn-sm"
-                            onClick={() => handleAddProduct(product)}
+                            onClick={() => handleAddProduct(p)}
                           >
                             Add
                           </button>
@@ -496,12 +448,6 @@ const OrdersView = () => {
                   </tbody>
                 </table>
 
-              </div>
-
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Close
-                </button>
               </div>
 
             </div>

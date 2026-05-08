@@ -27,7 +27,9 @@ const OrdersPage = () => {
       });
 
       const data = await res.json();
-      setOrders(data);
+      console.log("ORDERS:", data);
+
+      setOrders(Array.isArray(data) ? data : data.orders || []);
     } catch (err) {
       console.error("Error fetching orders:", err);
     } finally {
@@ -63,7 +65,7 @@ const OrdersPage = () => {
       });
 
       const data = await res.json();
-      console.log(data);
+      console.log("Created:", data);
 
       fetchOrders();
 
@@ -82,7 +84,7 @@ const OrdersPage = () => {
   };
 
   // ==============================
-  // LOADING USER SAFETY
+  // LOADING SAFETY
   // ==============================
   if (!user || !user.name) {
     return <p>Loading user...</p>;
@@ -142,15 +144,37 @@ const OrdersPage = () => {
                   onClick={() => handleSelectOrder(order._id)}
                 >
                   <h5>{order.orderName}</h5>
+
+                  <p>Staff: {order.staffName}</p>
+                  <p>Type: {order.serviceType}</p>
+
+                  <hr />
+
+                  <p>Subtotal: ₱{order.subtotal}</p>
+                  <p>Discount: ₱{order.discount}</p>
+
+                  <p className="fw-bold">
+                    Grand Total: ₱{order.grandTotal}
+                  </p>
+
                   <p>
-                    <strong>Date:</strong>{" "}
+                    Status:{" "}
+                    <span
+                      className={
+                        order.status === "billed"
+                          ? "text-success"
+                          : "text-warning"
+                      }
+                    >
+                      {order.status}
+                    </span>
+                  </p>
+
+                  <small>
                     {order.createdAt
                       ? new Date(order.createdAt).toLocaleString()
                       : "N/A"}
-                  </p>
-                  <p><strong>Staff:</strong> {order.staffName}</p>
-                  <p><strong>Type:</strong> {order.serviceType}</p>
-                  <p><strong>Total:</strong> ₱{order.total}</p>
+                  </small>
                 </div>
               </div>
             ))
