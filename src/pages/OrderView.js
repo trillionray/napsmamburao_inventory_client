@@ -212,7 +212,7 @@ const OrdersView = () => {
           <div style="text-align:center;">
             CEL NO: 0945 377 8649
 
-          <div>|||||||||||||||||||||||</div>
+          <div>.........................</div>
           <div>Order Id: ${orderData._id}</div>
           <div>Order: ${orderData.orderName}</div>
           <div>Cashier: ${orderData.staffName}</div>
@@ -220,11 +220,10 @@ const OrdersView = () => {
             Date: ${new Date(orderData.createdAt).toLocaleString()}
           </div>
 
-          <div>|||||||||||||||||||||||</div>
-
+          <div>.........................</div>
           ${itemsHTML}
 
-          <div>|||||||||||||||||||||||</div>
+         <div>.........................</div>
 
           <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
           <div>Pax: ${orderData.pax}</div>
@@ -236,7 +235,7 @@ const OrdersView = () => {
           </div>
 
           <div><b>Grand Total: ₱${formatMoney(orderData.grandTotal)}</b></div>
-          <div>|||||||||||||||||||||||</div>
+          <div>.........................</div>
           <div style="text-align:center;">Naps Sarap Kain po! <br /> Thank you!</div>
 
           <script>
