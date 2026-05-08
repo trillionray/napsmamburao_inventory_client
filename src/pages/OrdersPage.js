@@ -10,6 +10,7 @@ const OrdersPage = () => {
 
   const [orderName, setOrderName] = useState("");
   const [serviceType, setServiceType] = useState("dinein");
+  const [pax, setPax] = useState(1); // ✅ NEW
 
   const navigate = useNavigate();
 
@@ -27,7 +28,6 @@ const OrdersPage = () => {
       });
 
       const data = await res.json();
-      console.log("ORDERS:", data);
 
       setOrders(Array.isArray(data) ? data : data.orders || []);
     } catch (err) {
@@ -50,6 +50,11 @@ const OrdersPage = () => {
       return;
     }
 
+    if (pax < 1) {
+      alert("PAX must be at least 1");
+      return;
+    }
+
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL2}/orders`, {
         method: "POST",
@@ -61,16 +66,17 @@ const OrdersPage = () => {
           staffName: user.name,
           orderName,
           serviceType,
+          pax, // ✅ NEW FIELD SENT TO BACKEND
         }),
       });
 
       const data = await res.json();
-      console.log("Created:", data);
 
       fetchOrders();
 
       setOrderName("");
       setServiceType("dinein");
+      setPax(1); // reset
     } catch (err) {
       console.error("Error creating order:", err);
     }
@@ -102,30 +108,61 @@ const OrdersPage = () => {
       <div className="card p-3 mb-4">
         <h5>Create Order</h5>
 
-        <input
-          type="text"
-          placeholder="Order Label"
-          className="form-control mb-2"
-          value={orderName}
-          onChange={(e) => setOrderName(e.target.value)}
-        />
+        {/* ORDER NAME */}
+        <div className="row mb-2 align-items-center">
+          <div className="col-4">
+            <label>Order Label</label>
+          </div>
+          <div className="col-8">
+            <input
+              type="text"
+              className="form-control"
+              value={orderName}
+              onChange={(e) => setOrderName(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <select
-          className="form-control mb-2"
-          value={serviceType}
-          onChange={(e) => setServiceType(e.target.value)}
-        >
-          <option value="dinein">Dine-in</option>
-          <option value="delivery">Delivery</option>
-          <option value="pickup">Pickup</option>
-          <option value="reservation">Reservation</option>
-        </select>
+        {/* SERVICE TYPE */}
+        <div className="row mb-2 align-items-center">
+          <div className="col-4">
+            <label>Service Type</label>
+          </div>
+          <div className="col-8">
+            <select
+              className="form-control"
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value)}
+            >
+              <option value="dinein">Dine-in</option>
+              <option value="delivery">Delivery</option>
+              <option value="pickup">Pickup</option>
+              <option value="reservation">Reservation</option>
+            </select>
+          </div>
+        </div>
 
-        <button className="btn btn-primary" onClick={handleCreateOrder}>
+        {/* PAX */}
+        <div className="row mb-3 align-items-center">
+          <div className="col-4">
+            <label>PAX</label>
+          </div>
+          <div className="col-8">
+            <input
+              type="number"
+              min="1"
+              className="form-control"
+              value={pax}
+              onChange={(e) => setPax(Number(e.target.value))}
+            />
+          </div>
+        </div>
+
+        {/* BUTTON */}
+        <button className="btn btn-primary w-100" onClick={handleCreateOrder}>
           Create Order
         </button>
       </div>
-
       {/* ==============================
           ORDER LIST
       ============================== */}
@@ -147,6 +184,7 @@ const OrdersPage = () => {
 
                   <p>Staff: {order.staffName}</p>
                   <p>Type: {order.serviceType}</p>
+                  <p>Pax: {order.pax}</p> {/* optional display */}
 
                   <hr />
 

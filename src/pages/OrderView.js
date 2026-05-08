@@ -297,7 +297,15 @@ const OrdersView = () => {
       </div>
 
       <p>Staff: {order.staffName}</p>
-      <p>Status: {order.status}</p>
+      <p >Status: <span
+                      className={
+                        order.status === "billed"
+                          ? "text-success"
+                          : "text-warning"
+                      } 
+                    >
+                      {order.status}
+                    </span> </p>
 
       <hr />
 
@@ -317,45 +325,80 @@ const OrdersView = () => {
       {showDiscount && (
         <div className="card p-3 mb-3">
 
-          <h6>Discount</h6>
+          <h6 className="mb-3">Discount</h6>
 
-          <label>PAX</label>
-          <input
-            className="form-control mb-2"
-            type="number"
-            value={pax}
-            onChange={(e) => setPax(Number(e.target.value))}
-          />
+          {/* PAX */}
+          <div className="row mb-2 align-items-center">
+            <div className="col-4">
+              <label>PAX</label>
+            </div>
+            <div className="col-8">
+              <input
+                className="form-control"
+                type="number"
+                min="1"
+                value={pax}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setPax(value);
 
-          <label>Discounted PAX</label>
-          <input
-            className="form-control mb-2"
-            type="number"
-            value={discountedPax}
-            min="0"
-            max={pax}
-            onChange={(e) => {
-              const value = Number(e.target.value);
+                  // auto-adjust discountedPax if it exceeds pax
+                  if (discountedPax > value) {
+                    setDiscountedPax(value);
+                  }
+                }}
+              />
+            </div>
+          </div>
 
-              // prevent exceeding pax
-              if (value > pax) {
-                setDiscountedPax(pax);
-                return;
-              }
+          {/* Discounted PAX */}
+          <div className="row mb-2 align-items-center">
+            <div className="col-4">
+              <label>Discounted PAX</label>
+            </div>
+            <div className="col-8">
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                max={pax}
+                value={discountedPax}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
 
-              setDiscountedPax(value);
-            }}
-          />
+                  if (value > pax) {
+                    setDiscountedPax(pax);
+                  } else {
+                    setDiscountedPax(value);
+                  }
+                }}
+              />
+            </div>
+          </div>
 
-          <label>Discount %</label>
-          <input
-            className="form-control mb-2"
-            type="number"
-            value={discount}
-            onChange={(e) => setDiscount(Number(e.target.value))}
-          />
+          {/* Discount % */}
+          <div className="row mb-3 align-items-center">
+            <div className="col-4">
+              <label>Discount %</label>
+            </div>
+            <div className="col-8">
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                max="100"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+              />
+            </div>
+          </div>
 
-          <button className="btn btn-primary" onClick={applyDiscount}>
+          {/* APPLY BUTTON */}
+          <button
+            className="btn btn-primary w-100"
+            onClick={applyDiscount}
+            disabled={order.status === "billed"}
+          >
             Apply
           </button>
 
@@ -415,9 +458,16 @@ const OrdersView = () => {
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
 
-              <div className="modal-header">
-                <h5>Add Items</h5>
-                <button className="btn-close" onClick={() => setShowModal(false)} />
+              <div className="modal-header d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">Add Items</h5>
+
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm bg-danger"
+                  onClick={() => setShowModal(false)}
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="modal-body">
