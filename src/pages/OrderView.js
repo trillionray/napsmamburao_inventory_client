@@ -212,7 +212,7 @@ const OrdersView = () => {
           <div style="text-align:center;">
             CEL NO: 0945 377 8649
 
-          <div>=======================</div>
+          <div>|||||||||||||||||||||||</div>
           <div>Order Id: ${orderData._id}</div>
           <div>Order: ${orderData.orderName}</div>
           <div>Cashier: ${orderData.staffName}</div>
@@ -220,23 +220,23 @@ const OrdersView = () => {
             Date: ${new Date(orderData.createdAt).toLocaleString()}
           </div>
 
-          <div>=======================</div>
+          <div>|||||||||||||||||||||||</div>
 
           ${itemsHTML}
 
-          <div>=======================</div>
+          <div>|||||||||||||||||||||||</div>
 
           <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
           <div>Pax: ${orderData.pax}</div>
           <div>Discounted Pax: ${orderData.discountedPax}</div>
 
           <div>
-            Discount: ₱${formatMoney(orderData.discount)} 
+            Discount: ${orderData.subtotal / orderData.pax * orderData.discountedPax * orderData.discount / 100} 
             (${orderData.discount}%)
           </div>
 
           <div><b>Grand Total: ₱${formatMoney(orderData.grandTotal)}</b></div>
-          <div>=======================</div>
+          <div>|||||||||||||||||||||||</div>
           <div style="text-align:center;">Naps Sarap Kain po! <br /> Thank you!</div>
 
           <script>
