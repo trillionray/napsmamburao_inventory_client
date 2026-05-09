@@ -293,6 +293,33 @@ const OrdersView = () => {
     }, 300);
   };
 
+  const deleteOrder = async (id) => {
+  if (!window.confirm("Delete this order?")) return;
+
+  try {
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Order deleted");
+      navigate("/orders"); // go back to list
+    } else {
+      alert(data.message || "Delete failed");
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
   if (loading) return <p>Loading order...</p>;
 
   return (
@@ -302,10 +329,18 @@ const OrdersView = () => {
       <div className="d-flex justify-content-between">
         <h2>{order.orderName}</h2>
 
-        <div className="d-flex gap-2">
+        <div className="d-flex gap-2 mb-3">
           <button className="btn btn-warning" onClick={handleBillOut}>
             Bill Out
           </button>
+          {order.status === "pending" && (
+            <button
+              className="btn btn-danger"
+              onClick={() => deleteOrder(orderId)}
+            >
+              Delete
+            </button>
+          )}
           <button className="btn btn-danger" onClick={() => navigate("/orders")}>
             Back
           </button>

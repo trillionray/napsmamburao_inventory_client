@@ -24,15 +24,18 @@ export default function AppNavbar() {
             {isLoggedIn ? (
               <>
 
+                
+
+                <Nav.Link as={NavLink} to="/orders">Orders</Nav.Link>
+                <Nav.Link as={NavLink} to="/items">Inventory</Nav.Link>
+                <Nav.Link as={NavLink} to="/mytimelogs">MyLogs</Nav.Link>
                 {user.role === "admin" && (
                   <>
-                    <Nav.Link as={NavLink} to="/orders">Orders</Nav.Link>
-                    <Nav.Link as={NavLink} to="/items">Inventory</Nav.Link>
+                    
+                    
                     <Nav.Link as={NavLink} to="/admin/timelogs">AllLogs</Nav.Link>
                   </>
                 )}
-                
-                <Nav.Link as={NavLink} to="/mytimelogs">MyLogs</Nav.Link>
                 <Nav.Link as={NavLink} to="/logout">Logout</Nav.Link>
                 <Nav.Link disabled style={{ cursor: 'default', display: 'flex', alignItems: 'center' }}>
                   <span className="me-1 text-white">&#128100;</span> {/* user emoji as icon */}
