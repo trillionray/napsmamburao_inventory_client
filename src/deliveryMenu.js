@@ -116,7 +116,7 @@ const menu = [
 	id: 14,
 	name: "Sizzling Seafoods",
 	description: "",
-	price: 320,
+	price: 389,
 	image: "./images/products/sizzlingseafoods.png",
 	category: "Seafoods & Sisigs"
 },
@@ -124,7 +124,7 @@ const menu = [
 	id: 15,
 	name: "Boneless Bangus",
 	description: "",
-	price: 380,
+	price: 389,
 	image: "./images/products/bonelessbangus.png",
 	category: "Seafoods & Sisigs"
 },
@@ -199,7 +199,7 @@ const menu = [
 	id: 24,
 	name: "Crispy Pata",
 	description: "",
-	price: 779,
+	price: 799,
 	image: "./images/products/crispypata.png",
 	category: "Naps Specialties"
 },
@@ -226,7 +226,7 @@ const menu = [
 	id: 27,
 	name: "Bulalo",
 	description: "",
-	price: 599,
+	price: 799,
 	image: "./images/products/bulalo.png",
 	category: "Naps Favorites"
 },
@@ -741,7 +741,7 @@ const menu = [
 	id: 88,
 	name: "Halo-halo",
 	description: "",
-	price: 120,
+	price: 129,
 	image: "/images/products/halohalo.png",
 	category: "Desserts"
 },
@@ -869,7 +869,7 @@ const menu = [
 	id: 99,
 	name: "Lomi",
 	description: "",
-	price: 210,
+	price: 235,
 	image: "./images/products/lomi.jpg",
 	category: "Pancits & Lomis"
 },
@@ -877,7 +877,7 @@ const menu = [
 	id: 100,
 	name: "Chami",
 	description: "Pansit Chami",
-	price: 210,
+	price: 289,
 	image: "./images/products/pansitchami.png",
 	category: "Pancits & Lomis"
 },
