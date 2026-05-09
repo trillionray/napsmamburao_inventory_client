@@ -217,12 +217,14 @@ const OrdersView = () => {
           <div>Order: ${orderData.orderName}</div>
           <div>Cashier: ${orderData.staffName}</div>
           <div>
-            Date: ${new Date(orderData.createdAt).toLocaleString()}
+            Date: ${new Date(order.createdAt).toLocaleDateString("en-PH", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
           </div>
-
           <div>.........................</div>
           ${itemsHTML}
-
          <div>.........................</div>
 
           <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
@@ -295,7 +297,8 @@ const OrdersView = () => {
         </div>
       </div>
 
-      <p>Staff: {order.staffName}</p>
+      <p>Cashier: {order.staffName}</p>
+      <p> Date: {new Date(order.createdAt).toLocaleString()}</p>
       <p >Status: <span
                       className={
                         order.status === "billed"
