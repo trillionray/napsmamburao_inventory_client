@@ -213,7 +213,7 @@ const OrdersView = () => {
             CEL NO: 0945 377 8649
 
           <div>.........................</div>
-          <div>Order Id: ${orderData._id}</div>
+          <div>Ref Id: ${orderData._id}</div>
           <div>Order: ${orderData.orderName}</div>
           <div>Cashier: ${orderData.staffName}</div>
           <div>
