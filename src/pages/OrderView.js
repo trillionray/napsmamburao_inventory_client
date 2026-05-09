@@ -293,6 +293,7 @@ const OrdersView = () => {
     }, 300);
   };
 
+  
   const deleteOrder = async (id) => {
   if (!window.confirm("Delete this order?")) return;
 
