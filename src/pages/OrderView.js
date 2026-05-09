@@ -12,6 +12,7 @@ const OrdersView = () => {
     grandTotal: 0,
     pax: 1,
     discountedPax: 0,
+    cash: 0,
     status: "pending",
   });
 
@@ -27,6 +28,10 @@ const OrdersView = () => {
   const [discountedPax, setDiscountedPax] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [showDiscount, setShowDiscount] = useState(false);
+
+  const [cash, setCash] = useState(0);
+
+  const change = Number(cash || 0) - Number(order.grandTotal || 0);
   // ==============================
   // NORMALIZER
   // ==============================
@@ -38,6 +43,7 @@ const OrdersView = () => {
     grandTotal: Number(data?.grandTotal || 0),
     pax: Number(data?.pax || 1),
     discountedPax: Number(data?.discountedPax || 0),
+    cash: Number(data?.cash || 0),
     status: data?.status || "pending",
   });
 
@@ -65,6 +71,7 @@ const OrdersView = () => {
       setPax(normalized.pax);
       setDiscountedPax(normalized.discountedPax);
       setDiscount(normalized.discount);
+      setCash(normalized.cash || 0);
     } catch (err) {
       console.error(err);
     } finally {
@@ -237,6 +244,10 @@ const OrdersView = () => {
           </div>
 
           <div><b>Grand Total: ₱${formatMoney(orderData.grandTotal)}</b></div>
+          <div>Cash: ₱${formatMoney(orderData.cash)}</div>
+          <div>
+            Change: ₱${formatMoney(orderData.cash - orderData.grandTotal)}
+          </div>
           <div>.........................</div>
           <div style="text-align:center;">Naps Sarap Kain po! <br /> Thank you!</div>
 
@@ -262,8 +273,12 @@ const OrdersView = () => {
       {
         method: "PATCH",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
+        body: JSON.stringify({
+          cash,
+        }),
       }
     );
 
@@ -274,7 +289,7 @@ const OrdersView = () => {
 
     // ✅ IMPORTANT: wait for UI state then print
     setTimeout(() => {
-      printReceipt(updated);
+      printReceipt(updated, cash);
     }, 300);
   };
 
@@ -409,6 +424,32 @@ const OrdersView = () => {
 
       <p>Discount: {order.discount}% = P{order.subtotal / pax * discountedPax * (order.discount /100)}</p>
       <h5>Grand Total: ₱{order.grandTotal}</h5>
+
+      <div className="card p-3 mb-3">
+
+        <h6 className="mb-3">Payment</h6>
+
+        <div className="row mb-2 align-items-center">
+          <div className="col-4">
+            <label>Cash</label>
+          </div>
+
+          <div className="col-8">
+            <input
+              className="form-control"
+              type="number"
+              min="0"
+              value={cash}
+              onChange={(e) => setCash(Number(e.target.value))}
+            />
+          </div>
+        </div>
+
+        <h5>
+          Change: ₱{change > 0 ? change.toFixed(2) : "0.00"}
+        </h5>
+
+      </div>
 
       <hr />
 

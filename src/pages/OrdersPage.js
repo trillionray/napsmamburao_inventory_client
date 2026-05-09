@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import UserContext from "../context/UserContext";
+import { Navigate } from "react-router-dom";
 
 const OrdersPage = () => {
   const { user } = useContext(UserContext);
@@ -71,12 +72,17 @@ const OrdersPage = () => {
       });
 
       const data = await res.json();
+      console.log(data)
 
       fetchOrders();
 
       setOrderName("");
       setServiceType("dinein");
       setPax(1); // reset
+
+      if (data._id) {
+        navigate(`/orders/${data._id}`);
+      }
     } catch (err) {
       console.error("Error creating order:", err);
     }
@@ -189,7 +195,7 @@ const OrdersPage = () => {
                   <hr />
 
                   <p>Subtotal: ₱{order.subtotal}</p>
-                  <p>Discount: ₱{order.discount}</p>
+                  <p>Discount: {order.discount} %</p>
 
                   <p className="fw-bold">
                     Grand Total: ₱{order.grandTotal}
