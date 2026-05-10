@@ -138,6 +138,8 @@ const OrdersView = () => {
 
     const data = await res.json();
     setOrder(normalizeOrder(data));
+    setShowDiscount(false);
+
   };
 
   // ==============================
@@ -334,16 +336,51 @@ const OrdersView = () => {
           <button className="btn btn-warning" onClick={handleBillOut}>
             Bill Out
           </button>
-          {order.status === "pending" && (
+         {/* {order.status === "pending" && (
             <button
               className="btn btn-danger"
               onClick={() => deleteOrder(orderId)}
             >
               Delete
             </button>
-          )}
+          )}*/}
+
+          {order.status !== "cancelled" && (
+              <button
+                className="btn btn-outline-danger"
+                onClick={async () => {
+                  if (!window.confirm("Cancel this order?")) return;
+
+                  try {
+                    const res = await fetch(
+                      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/cancel`,
+                      {
+                        method: "PUT",
+                        headers: {
+                          Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                      }
+                    );
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                      setOrder(normalizeOrder(data.order));
+                      alert("Order cancelled");
+                    } else {
+                      alert(data.message || "Cancel failed");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+              >
+                Cancel Order
+              </button>
+            )}
+
           <button className="btn btn-danger" onClick={() => navigate("/orders")}>
-            Back
+            x
           </button>
         </div>
       </div>
@@ -354,11 +391,14 @@ const OrdersView = () => {
                       className={
                         order.status === "billed"
                           ? "text-success"
+                          : order.status === "cancelled"
+                          ? "text-danger"
                           : "text-warning"
-                      } 
+                      }
                     >
                       {order.status}
-                    </span> </p>
+                    </span>
+                       </p>
 
       <hr />
 
@@ -450,7 +490,7 @@ const OrdersView = () => {
           <button
             className="btn btn-primary w-100"
             onClick={applyDiscount}
-            disabled={order.status === "billed"}
+            // disabled={order.status === "billed"}
           >
             Apply
           </button>

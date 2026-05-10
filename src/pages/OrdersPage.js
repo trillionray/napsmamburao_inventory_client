@@ -201,18 +201,18 @@ const OrdersPage = () => {
                     Grand Total: ₱{order.grandTotal}
                   </p>
 
-                  <p>
-                    Status:{" "}
-                    <span
-                      className={
-                        order.status === "billed"
-                          ? "text-success"
-                          : "text-warning"
-                      }
-                    >
-                      {order.status}
-                    </span>
-                  </p>
+                 <p >Status: <span
+                                 className={
+                                   order.status === "billed"
+                                     ? "text-success"
+                                     : order.status === "cancelled"
+                                     ? "text-danger"
+                                     : "text-warning"
+                                 }
+                               >
+                                 {order.status}
+                               </span>
+                                  </p>
 
                   <small>
                     {order.createdAt
