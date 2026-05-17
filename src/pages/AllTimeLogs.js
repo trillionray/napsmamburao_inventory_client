@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import { Container, Button, Spinner } from "react-bootstrap";
+import {
+  Container,
+  Button,
+  Spinner,
+  Row,
+  Col,
+  Form,
+} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import DataTable from "react-data-table-component";
 
@@ -9,15 +16,22 @@ const notyf = new Notyf();
 
 const AllTimeLogs = () => {
   const [logs, setLogs] = useState([]);
+  const [filteredLogs, setFilteredLogs] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // SEARCH STATES
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // EDIT STATE
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     timeIn: "",
     timeOut: "",
-    tasks: ""
+    tasks: "",
   });
 
   const API_URL = process.env.REACT_APP_API_URL;
@@ -26,19 +40,61 @@ const AllTimeLogs = () => {
   // ================= FETCH =================
   const fetchAllLogs = async () => {
     setLoading(true);
+
     try {
       const res = await fetch(`${API_URL}/timelogs/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-      setLogs(data.timelogs || []);
+
+      const fetchedLogs = data.timelogs || [];
+
+      setLogs(fetchedLogs);
+      setFilteredLogs(fetchedLogs);
+
     } catch (error) {
       notyf.error("Failed to fetch time logs");
     } finally {
       setLoading(false);
     }
   };
+
+  // ================= FILTER =================
+  useEffect(() => {
+    let filtered = [...logs];
+
+    // SEARCH BY NAME
+    if (searchTerm) {
+      filtered = filtered.filter((log) =>
+        log.userId?.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // FILTER START DATE
+    if (startDate) {
+      filtered = filtered.filter(
+        (log) =>
+          new Date(log.timeIn) >= new Date(startDate)
+      );
+    }
+
+    // FILTER END DATE
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      filtered = filtered.filter(
+        (log) =>
+          new Date(log.timeIn) <= end
+      );
+    }
+
+    setFilteredLogs(filtered);
+
+  }, [searchTerm, startDate, endDate, logs]);
 
   // ================= CORRECTION ACTION =================
   const handleCorrectionAction = async (id, status) => {
@@ -60,6 +116,7 @@ const AllTimeLogs = () => {
 
       notyf.success(`Correction ${status}`);
       fetchAllLogs();
+
     } catch (err) {
       notyf.error(err.message || "Action failed");
     } finally {
@@ -70,6 +127,7 @@ const AllTimeLogs = () => {
   // ================= FIX: SAFE LOCAL TIME FORMAT =================
   const formatLocal = (date) => {
     if (!date) return "";
+
     const d = new Date(date);
 
     const offset = d.getTimezoneOffset();
@@ -87,14 +145,14 @@ const AllTimeLogs = () => {
     setFormData({
       timeIn: formatLocal(log.timeIn),
       timeOut: formatLocal(log.timeOut),
-      tasks: log.tasks?.join(", ") || ""
+      tasks: log.tasks?.join(", ") || "",
     });
   };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -110,8 +168,11 @@ const AllTimeLogs = () => {
           timeIn: toUTC(formData.timeIn),
           timeOut: toUTC(formData.timeOut),
           tasks: formData.tasks
-            ? formData.tasks.split(",").map(t => t.trim()).filter(Boolean)
-            : []
+            ? formData.tasks
+                .split(",")
+                .map((t) => t.trim())
+                .filter(Boolean)
+            : [],
         }),
       });
 
@@ -120,7 +181,9 @@ const AllTimeLogs = () => {
       if (!res.ok) throw new Error(data.message);
 
       notyf.success("Time updated");
+
       setEditingId(null);
+
       fetchAllLogs();
 
     } catch (err) {
@@ -136,16 +199,22 @@ const AllTimeLogs = () => {
   const columns = [
     {
       name: "Staff",
-      selector: row => row.userId?.name || "Unknown",
-      cell: row => {
+      selector: (row) => row.userId?.name || "Unknown",
+      cell: (row) => {
         const isActive = !row.timeOut;
+
         const isToday =
-          new Date(row.timeIn).toDateString() === new Date().toDateString();
+          new Date(row.timeIn).toDateString() ===
+          new Date().toDateString();
 
         return (
           <span
             style={{
-              color: isActive ? "green" : isToday ? "blue" : "inherit",
+              color: isActive
+                ? "green"
+                : isToday
+                ? "blue"
+                : "inherit",
               fontWeight: "bold",
             }}
           >
@@ -157,23 +226,33 @@ const AllTimeLogs = () => {
     },
     {
       name: "Date",
-      selector: row => new Date(row.timeIn).toLocaleDateString(),
+      selector: (row) =>
+        new Date(row.timeIn).toLocaleDateString(),
     },
     {
       name: "Time In",
-      selector: row => row.timeIn ? new Date(row.timeIn).toLocaleString() : "-",
+      selector: (row) =>
+        row.timeIn
+          ? new Date(row.timeIn).toLocaleString()
+          : "-",
     },
     {
       name: "Time Out",
-      selector: row => row.timeOut ? new Date(row.timeOut).toLocaleString() : "-",
+      selector: (row) =>
+        row.timeOut
+          ? new Date(row.timeOut).toLocaleString()
+          : "-",
     },
     {
       name: "Total Hours",
-      selector: row => row.totalTime ? row.totalTime.toFixed(2) : "-",
+      selector: (row) =>
+        row.totalTime
+          ? row.totalTime.toFixed(2)
+          : "-",
     },
     {
       name: "Correction",
-      cell: row => (
+      cell: (row) => (
         <span
           style={{
             color:
@@ -194,10 +273,9 @@ const AllTimeLogs = () => {
     {
       name: "Actions",
       width: "260px",
-      cell: row => (
+      cell: (row) => (
         <div className="d-flex gap-2 flex-nowrap align-items-center">
 
-          {/* ADMIN EDIT */}
           <Button
             size="sm"
             variant="warning"
@@ -207,14 +285,18 @@ const AllTimeLogs = () => {
             Edit
           </Button>
 
-          {/* CORRECTION ACTION */}
           {row.correctionStatus === "filed" ? (
             <>
               <Button
                 size="sm"
                 variant="success"
                 disabled={actionLoading}
-                onClick={() => handleCorrectionAction(row._id, "approved")}
+                onClick={() =>
+                  handleCorrectionAction(
+                    row._id,
+                    "approved"
+                  )
+                }
               >
                 Approve
               </Button>
@@ -223,7 +305,12 @@ const AllTimeLogs = () => {
                 size="sm"
                 variant="danger"
                 disabled={actionLoading}
-                onClick={() => handleCorrectionAction(row._id, "disapproved")}
+                onClick={() =>
+                  handleCorrectionAction(
+                    row._id,
+                    "disapproved"
+                  )
+                }
               >
                 Reject
               </Button>
@@ -231,7 +318,6 @@ const AllTimeLogs = () => {
           ) : (
             <span className="text-muted">—</span>
           )}
-
         </div>
       ),
     },
@@ -241,6 +327,54 @@ const AllTimeLogs = () => {
     <Container className="mt-4">
       <h2 className="text-center mb-4">Time Logs</h2>
 
+      {/* SEARCH FILTERS */}
+      <Row className="mb-3">
+        <Col md={4}>
+          <Form.Control
+            type="text"
+            placeholder="Search staff name..."
+            value={searchTerm}
+            onChange={(e) =>
+              setSearchTerm(e.target.value)
+            }
+          />
+        </Col>
+
+        <Col md={3}>
+          <Form.Control
+            type="date"
+            value={startDate}
+            onChange={(e) =>
+              setStartDate(e.target.value)
+            }
+          />
+        </Col>
+
+        <Col md={3}>
+          <Form.Control
+            type="date"
+            value={endDate}
+            onChange={(e) =>
+              setEndDate(e.target.value)
+            }
+          />
+        </Col>
+
+        <Col md={2}>
+          <Button
+            variant="secondary"
+            className="w-100"
+            onClick={() => {
+              setSearchTerm("");
+              setStartDate("");
+              setEndDate("");
+            }}
+          >
+            Clear
+          </Button>
+        </Col>
+      </Row>
+
       {loading ? (
         <div className="text-center">
           <Spinner animation="border" />
@@ -249,7 +383,7 @@ const AllTimeLogs = () => {
         <>
           <DataTable
             columns={columns}
-            data={logs}
+            data={filteredLogs}
             pagination
             highlightOnHover
             responsive
@@ -286,10 +420,18 @@ const AllTimeLogs = () => {
               />
 
               <div className="d-flex gap-2">
-                <Button size="sm" onClick={() => handleSave(editingId)}>
+                <Button
+                  size="sm"
+                  onClick={() => handleSave(editingId)}
+                >
                   Save
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => setEditingId(null)}>
+
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setEditingId(null)}
+                >
                   Cancel
                 </Button>
               </div>
