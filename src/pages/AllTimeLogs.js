@@ -11,6 +11,9 @@ import {
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import DataTable from "react-data-table-component";
+import { Modal } from "react-bootstrap";
+import { Eye } from "lucide-react";
+
 
 const notyf = new Notyf();
 
@@ -36,6 +39,11 @@ const AllTimeLogs = () => {
 
   const API_URL = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem("token");
+
+  // TASK MODAL
+  const [showTasksModal, setShowTasksModal] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+
 
   // ================= FETCH =================
   const fetchAllLogs = async () => {
@@ -124,6 +132,8 @@ const AllTimeLogs = () => {
     }
   };
 
+
+
   // ================= FIX: SAFE LOCAL TIME FORMAT =================
   const formatLocal = (date) => {
     if (!date) return "";
@@ -195,6 +205,11 @@ const AllTimeLogs = () => {
     fetchAllLogs();
   }, []);
 
+    const handleViewTasks = (tasks) => {
+      setSelectedTasks(tasks || []);
+      setShowTasksModal(true);
+    };
+
   // ================= TABLE =================
   const columns = [
     {
@@ -233,14 +248,14 @@ const AllTimeLogs = () => {
       name: "Time In",
       selector: (row) =>
         row.timeIn
-          ? new Date(row.timeIn).toLocaleString()
+          ? new Date(row.timeIn).toLocaleTimeString()
           : "-",
     },
     {
       name: "Time Out",
       selector: (row) =>
         row.timeOut
-          ? new Date(row.timeOut).toLocaleString()
+          ? new Date(row.timeOut).toLocaleTimeString()
           : "-",
     },
     {
@@ -250,6 +265,7 @@ const AllTimeLogs = () => {
           ? row.totalTime.toFixed(2)
           : "-",
     },
+    
     {
       name: "Correction",
       cell: (row) => (
@@ -272,10 +288,16 @@ const AllTimeLogs = () => {
     },
     {
       name: "Actions",
-      width: "260px",
+      width: "300px",
       cell: (row) => (
         <div className="d-flex gap-2 flex-nowrap align-items-center">
-
+          <Button
+          size="sm"
+          variant="info"
+          onClick={() => handleViewTasks(row.tasks)}
+        >
+          <Eye size={16} />
+        </Button>
           <Button
             size="sm"
             variant="warning"
@@ -324,6 +346,7 @@ const AllTimeLogs = () => {
   ];
 
   return (
+    <>
     <Container className="mt-4">
       <h2 className="text-center mb-4">Time Logs</h2>
 
@@ -440,6 +463,41 @@ const AllTimeLogs = () => {
         </>
       )}
     </Container>
+
+    {/* TASKS MODAL */}
+    <Modal
+      show={showTasksModal}
+      onHide={() => setShowTasksModal(false)}
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>Notes</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        {selectedTasks.length > 0 ? (
+          <ul className="mb-0">
+            {selectedTasks.map((task, index) => (
+              <li key={index}>{task}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-0 text-white">No tasks available</p>
+        )}
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowTasksModal(false)}
+        >
+          Close
+        </Button>
+      </Modal.Footer>
+    </Modal>
+    </>
+
+
   );
 };
 
