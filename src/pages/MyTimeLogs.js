@@ -349,9 +349,7 @@ const columns = [
          Notes
        </Button>
 
-       {/* FILE CORRECTION */}
-       {row.correctionStatus ===
-         "none" && (
+       
          <Button
            size="sm"
            variant="warning"
@@ -364,7 +362,7 @@ const columns = [
          >
            Correction
          </Button>
-       )}
+       
 
        {/* FILE OT */}
        {row.OT === "none" && (
