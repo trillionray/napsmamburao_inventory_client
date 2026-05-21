@@ -51,7 +51,7 @@ const MyTimeLogsSummary = () => {
     }
   };
 
-  // FILTER BY DATE RANGE
+  // FILTER DATE RANGE
   const filteredLogs = useMemo(() => {
     return logs.filter((row) => {
       if (!row.timeIn) return false;
@@ -76,7 +76,8 @@ const MyTimeLogsSummary = () => {
     });
   }, [logs, startDate, endDate]);
 
-  // GROUP SAME DATE + CALCULATE MD
+  // MAN DAY SUMMARY
+  // MAN DAY SUMMARY (GROUP BY DATE)
   const mdSummary = useMemo(() => {
     const grouped = {};
 
@@ -98,30 +99,74 @@ const MyTimeLogsSummary = () => {
             }
           ),
           hours: 0,
+          hasOT: false,
+          hasHoliday: false,
         };
       }
 
       grouped[dateKey].hours += Number(
         row.totalTime || 0
       );
+
+      if (row.OT === "approved") {
+        grouped[dateKey].hasOT = true;
+      }
+
+      if (row.holiday === "approved") {
+        grouped[dateKey].hasHoliday = true;
+      }
     });
 
-    const details = Object.values(grouped).map(
-      (item) => ({
-        date: item.date,
-        hours: item.hours,
-        md: item.hours >= 8 ? 1 : 0.5,
-      })
-    );
+    const details = Object.entries(grouped)
+      .sort(
+        ([dateA], [dateB]) =>
+          new Date(dateA) - new Date(dateB)
+      )
+      .map(([_, item]) => {
+        let md = 0;
+
+        if (item.hours >= 8) {
+          md = 1;
+        } else if (item.hours >= 4) {
+          md = 0.5;
+        } else {
+          md = item.hours;
+        }
+
+        return {
+          date: item.date,
+          hours: item.hours,
+          md,
+          hasOT: item.hasOT,
+          hasHoliday: item.hasHoliday,
+        };
+      });
 
     const total = details.reduce(
       (sum, item) => sum + item.md,
       0
     );
 
+    const REGULAR_HOURS = 9;
+
+    const totalOT = filteredLogs.reduce((sum, row) => {
+      if (row.OT !== "approved") return sum;
+
+      const hours = Number(row.totalTime || 0);
+
+      return sum + Math.max(0, hours - REGULAR_HOURS);
+    }, 0);
+
+
+    const totalHoliday = details.filter(
+      (x) => x.hasHoliday
+    ).length;
+
     return {
       details,
       total,
+      totalOT,
+      totalHoliday,
     };
   }, [filteredLogs]);
 
@@ -130,9 +175,7 @@ const MyTimeLogsSummary = () => {
       name: "Date",
       selector: (row) =>
         row.timeIn
-          ? new Date(
-              row.timeIn
-            ).toLocaleDateString()
+          ? new Date(row.timeIn).toLocaleDateString()
           : "-",
       sortable: true,
     },
@@ -140,18 +183,14 @@ const MyTimeLogsSummary = () => {
       name: "Time In",
       selector: (row) =>
         row.timeIn
-          ? new Date(
-              row.timeIn
-            ).toLocaleTimeString()
+          ? new Date(row.timeIn).toLocaleTimeString()
           : "-",
     },
     {
       name: "Time Out",
       selector: (row) =>
         row.timeOut
-          ? new Date(
-              row.timeOut
-            ).toLocaleTimeString()
+          ? new Date(row.timeOut).toLocaleTimeString()
           : "-",
     },
     {
@@ -168,22 +207,56 @@ const MyTimeLogsSummary = () => {
           style={{
             fontWeight: "bold",
             color:
-              row.correctionStatus ===
-              "approved"
+              row.correctionStatus === "approved"
                 ? "green"
-                : row.correctionStatus ===
-                  "disapproved"
+                : row.correctionStatus === "disapproved"
                 ? "red"
-                : row.correctionStatus ===
-                  "filed"
+                : row.correctionStatus === "filed"
                 ? "orange"
                 : "gray",
           }}
         >
-          {(
-            row.correctionStatus ||
-            "none"
-          ).toUpperCase()}
+          {(row.correctionStatus || "none").toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      name: "OT",
+      cell: (row) => (
+        <span
+          style={{
+            fontWeight: "bold",
+            color:
+              row.OT === "approved"
+                ? "green"
+                : row.OT === "disapproved"
+                ? "red"
+                : row.OT === "filed"
+                ? "orange"
+                : "gray",
+          }}
+        >
+          {(row.OT || "none").toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      name: "Holiday",
+      cell: (row) => (
+        <span
+          style={{
+            fontWeight: "bold",
+            color:
+              row.holiday === "approved"
+                ? "green"
+                : row.holiday === "disapproved"
+                ? "red"
+                : row.holiday === "filed"
+                ? "orange"
+                : "gray",
+          }}
+        >
+          {(row.holiday || "none").toUpperCase()}
         </span>
       ),
     },
@@ -192,13 +265,11 @@ const MyTimeLogsSummary = () => {
       cell: (row) =>
         row.tasks?.length ? (
           <div>
-            {row.tasks.map(
-              (task, index) => (
-                <div key={index}>
-                  • {task}
-                </div>
-              )
-            )}
+            {row.tasks.map((task, index) => (
+              <div key={index}>
+                • {task}
+              </div>
+            ))}
           </div>
         ) : (
           "-"
@@ -207,27 +278,28 @@ const MyTimeLogsSummary = () => {
     },
   ];
 
+
+  const hasSelectedRange =
+    startDate.trim() !== "" ||
+    endDate.trim() !== "";
+
   return (
     <Container className="mt-4">
-      <h2 className="text-center mb-4">
+      <h2 className="text-center mb-3">
         My Time Logs Summary
       </h2>
 
-      {/* DATE FILTER */}
+      {/* FILTER */}
       <Row className="mb-4">
         <Col md={4}>
           <Form.Group>
-            <Form.Label>
-              From
-            </Form.Label>
+            <Form.Label>From</Form.Label>
 
             <Form.Control
               type="date"
               value={startDate}
               onChange={(e) =>
-                setStartDate(
-                  e.target.value
-                )
+                setStartDate(e.target.value)
               }
             />
           </Form.Group>
@@ -235,17 +307,13 @@ const MyTimeLogsSummary = () => {
 
         <Col md={4}>
           <Form.Group>
-            <Form.Label>
-              To
-            </Form.Label>
+            <Form.Label>To</Form.Label>
 
             <Form.Control
               type="date"
               value={endDate}
               onChange={(e) =>
-                setEndDate(
-                  e.target.value
-                )
+                setEndDate(e.target.value)
               }
             />
           </Form.Group>
@@ -268,50 +336,75 @@ const MyTimeLogsSummary = () => {
       </Row>
 
       {/* MD SUMMARY */}
-      <Card className="mb-4 p-3">
-        <h5>Total Days Worked</h5>
+      {hasSelectedRange && (
+        <Card className="mb-4 p-3">
+          <h5>Total Days Worked</h5>
 
-        {mdSummary.details.length >
-        0 ? (
-          <>
-            {mdSummary.details.map(
-              (
-                item,
-                index
-              ) => (
+          {mdSummary.details.length > 0 ? (
+            <>
+              {mdSummary.details.map((item, index) => (
                 <div key={index}>
                   {item.date}
                   {" — "}
-                  {item.hours.toFixed(
-                    2
-                  )}{" "}
-                  hrs
+                  {item.hours.toFixed(2)} hrs
                   {" : "}
-                  <strong>
+
+                  <strong
+                    style={{
+                      color:
+                        item.md <= 0.5
+                          ? "red"
+                          : "inherit",
+                    }}
+                  >
                     {item.md} MD
                   </strong>
+
+                  {item.hasOT && (
+                    <span className="ms-2 text-warning">
+                      (with OT)
+                    </span>
+                  )}
+
+                  {item.hasHoliday && (
+                    <span className="ms-2 text-warning">
+                      (Holiday)
+                    </span>
+                  )}
                 </div>
-              )
-            )}
+              ))}
 
-            <hr />
+              <hr />
 
-            <h5>
-              Total of{" "}
-              <strong>
-                {
-                  mdSummary.total
-                }{" "}
-                MD
-              </strong>
-            </h5>
-          </>
-        ) : (
-          <div>
-            No records found
-          </div>
-        )}
-      </Card>
+              <div>
+                Total MD:
+                <strong>
+                  {" "}
+                  {mdSummary.total}
+                </strong>
+              </div>
+
+              <div>
+                Approved OT:
+                <strong>
+                  {" "}
+                  {mdSummary.totalOT}
+                </strong>
+              </div>
+
+              <div>
+                Approved Holiday:
+                <strong>
+                  {" "}
+                  {mdSummary.totalHoliday}
+                </strong>
+              </div>
+            </>
+          ) : (
+            <div>No records found</div>
+          )}
+        </Card>
+      )}
 
       <div className="mb-2">
         Showing{" "}
@@ -326,19 +419,10 @@ const MyTimeLogsSummary = () => {
           <Spinner animation="border" />
         </div>
       ) : (
-        <div
-          style={{
-            overflowX:
-              "auto",
-          }}
-        >
+        <div style={{ overflowX: "auto" }}>
           <DataTable
-            columns={
-              columns
-            }
-            data={
-              filteredLogs
-            }
+            columns={columns}
+            data={filteredLogs}
             pagination
             highlightOnHover
             responsive

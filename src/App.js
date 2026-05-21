@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import Items from './pages/Items';
 
 import MyTimeLogs from './pages/MyTimeLogs';
+import MyTimeLogsSummary from './pages/MyTimeLogsSummary';
 import AllTimeLogs from './pages/AllTimeLogs';
 
 import ProductsPage from './pages/AllTimeLogs';
@@ -91,6 +92,7 @@ function App() {
 
             <Route path="/items" element={<Items />} />
             <Route path="/mytimelogs" element={<MyTimeLogs />} />
+            <Route path="/mytimelogssummary" element={<MyTimeLogsSummary />} />
             <Route path="/admin/timelogs" element={<AllTimeLogs />} />
 
 

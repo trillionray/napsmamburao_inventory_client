@@ -4,6 +4,8 @@ import "notyf/notyf.min.css";
 import { Container, Row, Col, Button, Card, Spinner } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { Modal } from "react-bootstrap";
+import { Eye } from "lucide-react";
 
 const notyf = new Notyf();
 
@@ -21,6 +23,11 @@ const MyTimeLogs = () => {
 
   const API_URL = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem("token");
+
+  // TASK VIEW MODAL
+  const [showTasksModal, setShowTasksModal] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+
 
   useEffect(() => {
     fetchTimeLogs();
@@ -41,6 +48,7 @@ const MyTimeLogs = () => {
       setLoading(false);
     }
   };
+
 
   // ================= CLOCK IN =================
   const quickClockIn = () => {
@@ -167,6 +175,61 @@ const MyTimeLogs = () => {
       .finally(() => setActionLoading(false));
   };
 
+  const handleFileOT = (id) => {
+    setActionLoading(true);
+
+    fetch(`${API_URL}/timelogs/${id}/file-ot`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.message) {
+          notyf.success(data.message);
+        }
+
+        fetchTimeLogs();
+      })
+      .catch(() => {
+        notyf.error("Error filing OT");
+      })
+      .finally(() => {
+        setActionLoading(false);
+      });
+  };
+
+  const handleFileHoliday = (id) => {
+    setActionLoading(true);
+
+    fetch(`${API_URL}/timelogs/${id}/file-holiday`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.message) {
+          notyf.success(data.message);
+        }
+
+        fetchTimeLogs();
+      })
+      .catch(() => {
+        notyf.error("Error filing holiday");
+      })
+      .finally(() => {
+        setActionLoading(false);
+      });
+  };
+
+  const handleViewTasks = (tasks) => {
+    setSelectedTasks(tasks || []);
+    setShowTasksModal(true);
+  };
+
   // ================= DATA TABLE =================
 const columns = [
   {
@@ -210,38 +273,137 @@ const columns = [
       </span>
     ),
   },
+  {
+      name: "OT",
+      cell: (row) => (
+        <span
+          style={{
+            fontWeight: "bold",
+            color:
+              row.OT === "approved"
+                ? "green"
+                : row.OT === "disapproved"
+                ? "red"
+                : row.OT === "filed"
+                ? "orange"
+                : "gray",
+          }}
+        >
+          {(row.OT || "none").toUpperCase()}
+        </span>
+      ),
+    },
+
+    {
+      name: "Holiday",
+      cell: (row) => (
+        <span
+          style={{
+            fontWeight: "bold",
+            color:
+              row.holiday === "approved"
+                ? "green"
+                : row.holiday === "disapproved"
+                ? "red"
+                : row.holiday === "filed"
+                ? "orange"
+                : "gray",
+          }}
+        >
+          {(row.holiday || "none").toUpperCase()}
+        </span>
+      ),
+    },
+
  {
    name: "Actions",
-   width: "180px", // fixed column width to prevent resizing
+   width: "420px",
+
    cell: (row) => (
      <div
        style={{
          display: "flex",
          gap: "6px",
-         flexWrap: "nowrap",   // prevents wrapping
-         alignItems: "center",
-         whiteSpace: "nowrap", // prevents text wrapping
+         flexWrap: "wrap",
        }}
      >
-       <Button size="sm" variant="success" onClick={() => startEdit(row)}>
-         Edit
+       {/* VIEW */}
+       {/*<Button
+         size="sm"
+         variant="info"
+         onClick={() =>
+           handleViewTasks(row.tasks)
+         }
+       >
+         <Eye size={16} />
+       </Button>*/}
+
+       {/* EDIT */}
+       <Button
+         size="sm"
+         variant="success"
+         onClick={() =>
+           startEdit(row)
+         }
+       >
+         Notes
        </Button>
 
-       {row.correctionStatus === "none" && !row.isPaid && (
+       {/* FILE CORRECTION */}
+       {row.correctionStatus ===
+         "none" && (
          <Button
            size="sm"
            variant="warning"
-           onClick={() => handleFileCorrection(row._id)}
            disabled={actionLoading}
+           onClick={() =>
+             handleFileCorrection(
+               row._id
+             )
+           }
          >
-           File
+           Correction
+         </Button>
+       )}
+
+       {/* FILE OT */}
+       {row.OT === "none" && (
+         <Button
+           size="sm"
+           variant="dark"
+           disabled={actionLoading}
+           onClick={() =>
+             handleFileOT(
+               row._id
+             )
+           }
+         >
+           File OT
+         </Button>
+       )}
+
+       {/* FILE HOLIDAY */}
+       {row.holiday ===
+         "none" && (
+         <Button
+           size="sm"
+           variant="primary"
+           disabled={actionLoading}
+           onClick={() =>
+             handleFileHoliday(
+               row._id
+             )
+           }
+         >
+           Holiday
          </Button>
        )}
      </div>
    ),
- }
+ },
 ];
   return (
+    <>
     <Container className="mt-4">
       <h2 className="text-center mb-3">My Time Logs</h2>
 
@@ -322,7 +484,7 @@ const columns = [
       {/* ================= EDIT TASKS ================= */}
       {editId && (
         <Card className="mb-3 p-3">
-          <h5>Edit Tasks</h5>
+          <h5>Add Notes</h5>
 
           {editTasks.map((t, i) => (
             <div key={i} className="d-flex mb-2">
@@ -379,6 +541,42 @@ const columns = [
         </div>
       )}
     </Container>
+
+    {/* TASKS MODAL */}
+    <Modal
+      show={showTasksModal}
+      onHide={() => setShowTasksModal(false)}
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>Notes</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        {selectedTasks.length > 0 ? (
+          <ul className="mb-0">
+            {selectedTasks.map((task, index) => (
+              <li key={index}>{task}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-0 text-white">
+            No notes available
+          </p>
+        )}
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowTasksModal(false)}
+        >
+          Close
+        </Button>
+      </Modal.Footer>
+
+    </Modal>
+    </>
   );
 };
 

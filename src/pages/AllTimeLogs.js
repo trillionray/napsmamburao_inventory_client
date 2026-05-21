@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
 import {
@@ -37,6 +37,15 @@ const AllTimeLogs = () => {
     tasks: "",
   });
 
+  const [showRejectModal, setShowRejectModal] =
+    useState(false);
+
+  const [rejectId, setRejectId] =
+    useState(null);
+
+  const [rejectType, setRejectType] =
+    useState("correction");
+
   const API_URL = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem("token");
 
@@ -44,6 +53,14 @@ const AllTimeLogs = () => {
   const [showTasksModal, setShowTasksModal] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState([]);
 
+  const [showApproveModal, setShowApproveModal] =
+    useState(false);
+
+  const [approveId, setApproveId] =
+    useState(null);
+
+  const [approveType, setApproveType] =
+    useState("correction");
 
   // ================= FETCH =================
   const fetchAllLogs = async () => {
@@ -83,9 +100,11 @@ const AllTimeLogs = () => {
 
     // FILTER START DATE
     if (startDate) {
+      const from = new Date(startDate);
+      from.setHours(0, 0, 0, 0);
+
       filtered = filtered.filter(
-        (log) =>
-          new Date(log.timeIn) >= new Date(startDate)
+        (log) => new Date(log.timeIn) >= from
       );
     }
 
@@ -104,6 +123,109 @@ const AllTimeLogs = () => {
 
   }, [searchTerm, startDate, endDate, logs]);
 
+
+  const hasSelectedRange =
+    startDate.trim() !== "" ||
+    endDate.trim() !== "";
+
+  const summary = useMemo(() => {
+    const grouped = {};
+
+    filteredLogs.forEach((row) => {
+      if (!row.timeIn) return;
+
+      const key = new Date(row.timeIn)
+        .toISOString()
+        .split("T")[0];
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          date: new Date(
+            row.timeIn
+          ).toLocaleDateString(
+            "en-US",
+            {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }
+          ),
+          hours: 0,
+          staff: new Set(),
+          hasOT: false,
+          hasHoliday: false,
+        };
+      }
+
+      grouped[key].hours += Number(
+        row.totalTime || 0
+      );
+
+      grouped[key].staff.add(
+        row.userId?.name ||
+          "Unknown"
+      );
+
+      if (row.OT === "approved") {
+        grouped[key].hasOT = true;
+      }
+
+      if (
+        row.holiday ===
+        "approved"
+      ) {
+        grouped[key].hasHoliday = true;
+      }
+    });
+
+    const details = Object.entries(grouped)
+      .sort(([a], [b]) => new Date(a) - new Date(b))
+      .map(([_, item]) => {
+        let md = 0;
+
+        if (item.hours >= 8) {
+          md = 1;
+        } else if (item.hours >= 4) {
+          md = 0.5;
+        } else {
+          md = 0;
+        }
+
+        // ONLY COUNT OT IF APPROVED
+        const otHours =
+          item.hasOT && item.hours > 9
+            ? item.hours - 9
+            : 0;
+
+        return {
+          ...item,
+          md,
+          otHours,
+          staffCount: item.staff.size,
+        };
+      });
+
+    return {
+      details,
+      totalMD:
+        details.reduce(
+          (a, b) =>
+            a + b.md,
+          0
+        ),
+
+      totalOT: details.reduce(
+        (sum, item) => sum + (item.otHours || 0),
+        0
+      ).toFixed(2),
+
+      totalHoliday:
+        details.filter(
+          (x) =>
+            x.hasHoliday
+        ).length,
+    };
+  }, [filteredLogs]);
   // ================= CORRECTION ACTION =================
   const handleCorrectionAction = async (id, status) => {
     try {
@@ -210,6 +332,221 @@ const AllTimeLogs = () => {
       setShowTasksModal(true);
     };
 
+  const handleApprove = async () => {
+    try {
+      setActionLoading(true);
+
+      const endpoints = {
+        correction:
+          `${API_URL}/timelogs/${approveId}/handle-correction`,
+        ot:
+          `${API_URL}/timelogs/${approveId}/handle-ot`,
+        holiday:
+          `${API_URL}/timelogs/${approveId}/handle-holiday`,
+      };
+
+      const res = await fetch(
+        endpoints[approveType],
+        {
+          method: "PATCH",
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            status: "approved",
+          }),
+        }
+      );
+
+      const data =
+        await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.message
+        );
+      }
+
+      notyf.success(
+        `${approveType.toUpperCase()} approved`
+      );
+
+      setShowApproveModal(false);
+
+      fetchAllLogs();
+
+    } catch (err) {
+      notyf.error(
+        err.message ||
+          "Approve failed"
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      setActionLoading(true);
+
+      const endpoints = {
+        correction:
+          `${API_URL}/timelogs/${rejectId}/handle-correction`,
+        ot:
+          `${API_URL}/timelogs/${rejectId}/handle-ot`,
+        holiday:
+          `${API_URL}/timelogs/${rejectId}/handle-holiday`,
+      };
+
+      const res = await fetch(
+        endpoints[rejectType],
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            status: "disapproved",
+          }),
+        }
+      );
+
+      const data =
+        await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.message
+        );
+      }
+
+      notyf.success(
+        `${rejectType.toUpperCase()} rejected`
+      );
+
+      setShowRejectModal(false);
+
+      fetchAllLogs();
+
+    } catch (err) {
+      notyf.error(
+        err.message ||
+          "Reject failed"
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+
+    // ✅ SORT BY DATE ASCENDING
+    const sortedLogs = [...filteredLogs].sort(
+      (a, b) => new Date(a.timeIn) - new Date(b.timeIn)
+    );
+
+    const html = `
+      <html>
+        <head>
+          <title>Time Logs Summary</title>
+          <style>
+            body { font-family: Arial; padding: 20px; }
+            h2 { text-align: center; margin-bottom: 5px; }
+
+            .meta {
+              text-align: center;
+              margin-bottom: 20px;
+              font-size: 14px;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+
+            th, td {
+              border: 1px solid #000;
+              padding: 8px;
+              font-size: 12px;
+            }
+
+            th {
+              background: #f2f2f2;
+            }
+
+            .summary {
+              margin-top: 20px;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+
+        <body>
+
+          <h2>Time Logs Summary</h2>
+
+          <div class="meta">
+  
+            <div>
+              <strong>From:</strong> ${startDate || "N/A"} |
+              <strong>To:</strong> ${endDate || "N/A"}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Staff</th>
+                <th>Date</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Hours</th>
+                <th>OT</th>
+                <th>Holiday</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${sortedLogs
+                .map((row) => {
+                  return `
+                  <tr>
+                    <td>${row.userId?.name || "Unknown"}</td>
+                    <td>${row.timeIn ? new Date(row.timeIn).toLocaleDateString() : "-"}</td>
+                    <td>${row.timeIn ? new Date(row.timeIn).toLocaleTimeString() : "-"}</td>
+                    <td>${row.timeOut ? new Date(row.timeOut).toLocaleTimeString() : "-"}</td>
+                    <td>${row.totalTime ? row.totalTime.toFixed(2) : "-"}</td>
+                    <td>${row.OT === "approved" ? "YES" : "NO"}</td>
+                    <td>${row.holiday === "approved" ? "YES" : "NO"}</td>
+                  </tr>
+                `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+
+          <div class="summary">
+ 
+            <p>Total MD: ${summary.totalMD}</p>
+            <p>Total OT: ${summary.totalOT}</p>
+            <p>Total Holiday: ${summary.totalHoliday}</p>
+          </div>
+
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   // ================= TABLE =================
   const columns = [
     {
@@ -286,63 +623,133 @@ const AllTimeLogs = () => {
         </span>
       ),
     },
+
+
+    {
+      name: "OT",
+      cell: (row) => (
+        <span
+          style={{
+            color:
+              row.OT === "approved"
+                ? "green"
+                : row.OT === "disapproved"
+                ? "red"
+                : row.OT === "filed"
+                ? "orange"
+                : "gray",
+            fontWeight: "bold",
+          }}
+        >
+          {row.OT?.toUpperCase()}
+        </span>
+      ),
+    },
+
+    {
+      name: "Holiday",
+      cell: (row) => (
+        <span
+          style={{
+            color:
+              row.holiday === "approved"
+                ? "green"
+                : row.holiday === "disapproved"
+                ? "red"
+                : row.holiday === "filed"
+                ? "orange"
+                : "gray",
+            fontWeight: "bold",
+          }}
+        >
+          {row.holiday?.toUpperCase()}
+        </span>
+      ),
+    },
     {
       name: "Actions",
-      width: "300px",
+
+      width: "380px",
+
       cell: (row) => (
-        <div className="d-flex gap-2 flex-nowrap align-items-center">
+        <div className="d-flex gap-2 flex-wrap">
+
           <Button
-          size="sm"
-          variant="info"
-          onClick={() => handleViewTasks(row.tasks)}
-        >
-          <Eye size={16} />
-        </Button>
+            size="sm"
+            variant="info"
+            onClick={() =>
+              handleViewTasks(
+                row.tasks
+              )
+            }
+          >
+            <Eye size={16} />
+          </Button>
+
           <Button
             size="sm"
             variant="warning"
-            style={{ whiteSpace: "nowrap" }}
-            onClick={() => handleEditClick(row)}
+            onClick={() =>
+              handleEditClick(
+                row
+              )
+            }
           >
             Edit
           </Button>
 
-          {row.correctionStatus === "filed" ? (
-            <>
-              <Button
-                size="sm"
-                variant="success"
-                disabled={actionLoading}
-                onClick={() =>
-                  handleCorrectionAction(
-                    row._id,
-                    "approved"
-                  )
-                }
-              >
-                Approve
-              </Button>
+          {/* APPROVE */}
+          <Button
+            size="sm"
+            variant="success"
+            disabled={
+              actionLoading
+            }
+            onClick={() => {
+              setApproveId(
+                row._id
+              );
 
-              <Button
-                size="sm"
-                variant="danger"
-                disabled={actionLoading}
-                onClick={() =>
-                  handleCorrectionAction(
-                    row._id,
-                    "disapproved"
-                  )
-                }
-              >
-                Reject
-              </Button>
-            </>
-          ) : (
-            <span className="text-muted">—</span>
-          )}
+              setApproveType(
+                "correction"
+              );
+
+              setShowApproveModal(
+                true
+              );
+            }}
+          >
+            Approve
+          </Button>
+
+          {/* REJECT */}
+          <Button
+            size="sm"
+            variant="danger"
+            disabled={
+              actionLoading
+            }
+            onClick={() => {
+              setRejectId(
+                row._id
+              );
+
+              setRejectType(
+                "correction"
+              );
+
+              setShowRejectModal(
+                true
+              );
+            }}
+          >
+            Reject
+          </Button>
+
         </div>
       ),
     },
+
   ];
 
   return (
@@ -363,7 +770,7 @@ const AllTimeLogs = () => {
           />
         </Col>
 
-        <Col md={3}>
+        <Col md={2}>
           <Form.Control
             type="date"
             value={startDate}
@@ -373,7 +780,7 @@ const AllTimeLogs = () => {
           />
         </Col>
 
-        <Col md={3}>
+        <Col md={2}>
           <Form.Control
             type="date"
             value={endDate}
@@ -396,6 +803,15 @@ const AllTimeLogs = () => {
             Clear
           </Button>
         </Col>
+
+        <Col md={2} className="ms-auto d-flex justify-content-end">          <Button
+            variant="success"
+            className="mb-3"
+            onClick={handlePrint}
+          >
+            Print Summary
+          </Button>
+        </Col>
       </Row>
 
       {loading ? (
@@ -404,6 +820,121 @@ const AllTimeLogs = () => {
         </div>
       ) : (
         <>
+
+        {hasSelectedRange && (
+          <div className="mb-4">
+
+            <div className="border rounded p-3">
+
+              <h5>
+                Summary
+              </h5>
+
+              {summary.details
+                .length >
+              0 ? (
+                <>
+                  {summary.details.map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <div
+                        key={
+                          index
+                        }
+                        className="mb-2"
+                      >
+                        <strong>
+                          {
+                            item.date
+                          }
+                        </strong>
+
+                        {" — "}
+
+                        {
+                          item.staffCount
+                        }{" "}
+                        staff
+
+                        {" • "}
+
+                        {item.hours.toFixed(
+                          2
+                        )}{" "}
+                        hrs
+
+                        {" • "}
+
+                        <strong
+                          style={{
+                            color:
+                              item.md <= 0.5
+                                ? "red"
+                                : "inherit",
+                          }}
+                        >
+                          {item.md} MD
+                        </strong>
+
+                        {item.hasOT && (
+                          <span className="ms-2 text-warning">
+                            with OT
+                          </span>
+                        )}
+
+                        {item.hasHoliday && (
+                          <span className="ms-2 text-warning">
+                            Holiday
+                          </span>
+                        )}
+                      </div>
+                    )
+                  )}
+
+                  <hr />
+
+                  <div>
+                    Total MD:
+                    <strong>
+                      {" "}
+                      {
+                        summary.totalMD
+                      } MD
+                    </strong>
+                  </div>
+
+                  <div>
+                    Total OT:
+                    <strong>
+                      {" "}
+                      {
+                        summary.totalOT
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    Holiday:
+                    <strong>
+                      {" "}
+                      {
+                        summary.totalHoliday
+                      } MD
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  No records
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        )}
           <DataTable
             columns={columns}
             data={filteredLogs}
@@ -494,6 +1025,150 @@ const AllTimeLogs = () => {
           Close
         </Button>
       </Modal.Footer>
+    </Modal>
+
+    <Modal
+      show={showApproveModal}
+      onHide={() =>
+        setShowApproveModal(false)
+      }
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>
+          Approve Request
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+
+        <Form.Group>
+
+          <Form.Label>
+            Select request
+          </Form.Label>
+
+          <Form.Select
+            value={approveType}
+            onChange={(e) =>
+              setApproveType(
+                e.target.value
+              )
+            }
+          >
+            <option value="correction">
+              Correction
+            </option>
+
+            <option value="ot">
+              OT
+            </option>
+
+            <option value="holiday">
+              Holiday
+            </option>
+
+          </Form.Select>
+
+        </Form.Group>
+
+      </Modal.Body>
+
+      <Modal.Footer>
+
+        <Button
+          variant="secondary"
+          onClick={() =>
+            setShowApproveModal(
+              false
+            )
+          }
+        >
+          Cancel
+        </Button>
+
+        <Button
+          variant="success"
+          disabled={
+            actionLoading
+          }
+          onClick={
+            handleApprove
+          }
+        >
+          Confirm Approve
+        </Button>
+
+      </Modal.Footer>
+
+    </Modal>
+
+    <Modal
+      show={showRejectModal}
+      onHide={() =>
+        setShowRejectModal(false)
+      }
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>
+          Reject Request
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+
+        <Form.Group>
+          <Form.Label>
+            Select request
+          </Form.Label>
+
+          <Form.Select
+            value={rejectType}
+            onChange={(e) =>
+              setRejectType(
+                e.target.value
+              )
+            }
+          >
+            <option value="correction">
+              Correction
+            </option>
+
+            <option value="ot">
+              OT
+            </option>
+
+            <option value="holiday">
+              Holiday
+            </option>
+          </Form.Select>
+
+        </Form.Group>
+
+      </Modal.Body>
+
+      <Modal.Footer>
+
+        <Button
+          variant="secondary"
+          onClick={() =>
+            setShowRejectModal(false)
+          }
+        >
+          Cancel
+        </Button>
+
+        <Button
+          variant="danger"
+          disabled={actionLoading}
+          onClick={handleReject}
+        >
+          Confirm Reject
+        </Button>
+
+      </Modal.Footer>
+
     </Modal>
     </>
 
