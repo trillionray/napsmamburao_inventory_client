@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Notyf } from "notyf";
+import Swal from "sweetalert2";
 import "notyf/notyf.min.css";
 import { Container, Row, Col, Button, Card, Spinner } from "react-bootstrap";
 import DataTable from "react-data-table-component";
@@ -63,8 +64,19 @@ const MyTimeLogs = () => {
       body: JSON.stringify({ tasks: [] }),
     })
       .then((res) => res.json())
-      .then(() => {
-        notyf.success("Clock In successful");
+      .then((data) => {
+        console.log(data);
+        if(data.message=="User already clocked in."){
+          Swal.fire({
+            icon: "error",
+            title: data.message,
+            text: "May time log/s na hindi na clock out. Paki-clock out muna ito bago magclock-in uli. ",
+          });
+        }
+        else{
+          notyf.success("Clock In successful");
+        }
+        
         fetchTimeLogs();
       })
       .finally(() => setActionLoading(false));
