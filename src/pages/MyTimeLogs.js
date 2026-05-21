@@ -511,8 +511,9 @@ const columns = [
 
           {editTasks.map((t, i) => (
             <div key={i} className="d-flex mb-2">
-              <input
+              <textarea
                 className="form-control me-2"
+                rows={5}
                 value={t}
                 onChange={(e) => {
                   const updated = [...editTasks];
