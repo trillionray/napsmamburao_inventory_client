@@ -87,15 +87,28 @@ const MyTimeLogs = () => {
       },
       body: JSON.stringify({ tasks }),
     })
-      .then((res) => res.json())
-      .then(() => {
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to clock in");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log(data);
+
         notyf.success("Clock In successful");
         setIsPreparingClockIn(false);
         setTasks([]);
         setTaskInput("");
         fetchTimeLogs();
       })
-      .finally(() => setActionLoading(false));
+      .catch((error) => {
+        console.log(error);
+        notyf.error(error.message || "Clock In failed");
+      })
+      .finally(() => {
+        setActionLoading(false);
+      });
   };
 
   // ================= CLOCK OUT =================
