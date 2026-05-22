@@ -214,10 +214,12 @@ const OrdersView = () => {
     <head>
       <title>Receipt</title>
 
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
       <style>
         @page {
           size: A4;
-          margin: 10mm;
+          margin: 0;
         }
 
         html, body {
@@ -225,14 +227,17 @@ const OrdersView = () => {
           padding: 0;
           width: 100%;
           font-family: monospace;
-          font-size: 30px;   /* BIGGER TEXT */
+          font-size: 34px;
           text-align: center;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         .receipt {
           width: 100%;
-          padding: 30px;
+          padding: 50px;
           box-sizing: border-box;
+          text-align: center;
         }
 
         .line {
@@ -246,25 +251,24 @@ const OrdersView = () => {
         }
 
         .title {
-          font-size: 30px;
+          font-size: 36px;
           font-weight: bold;
           margin-bottom: 10px;
         }
 
         .subtitle {
-          font-size: 20px;
+          font-size: 28px;
           margin-bottom: 10px;
         }
 
         .bold {
           font-weight: bold;
-          font-size: 24px;
+          font-size: 30px;
         }
 
-        @media print {
-          body {
-            margin: 0;
-          }
+        * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
       </style>
     </head>
@@ -309,8 +313,8 @@ const OrdersView = () => {
           Discount:
           ₱${formatMoney(
             (orderData.subtotal / orderData.pax) *
-            orderData.discountedPax *
-            (orderData.discount / 100)
+              orderData.discountedPax *
+              (orderData.discount / 100)
           )}
           (${orderData.discount}%)
         </div>
@@ -337,10 +341,10 @@ const OrdersView = () => {
       </div>
 
       <script>
-        window.onload = () => {
+        setTimeout(() => {
           window.print();
           window.onafterprint = () => window.close();
-        };
+        }, 200);
       </script>
     </body>
     </html>
