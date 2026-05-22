@@ -341,10 +341,31 @@ const OrdersView = () => {
       </div>
 
       <script>
-        setTimeout(() => {
+        const printOnce = () => {
+          window.focus();
           window.print();
-          window.onafterprint = () => window.close();
-        }, 200);
+        };
+
+        window.onload = () => {
+          // small delay helps tablet browsers stabilize rendering
+          setTimeout(printOnce, 300);
+        };
+
+        // prevent "preparing preview" loop issues
+        let printed = false;
+
+        window.onfocus = () => {
+          if (!printed) {
+            printed = true;
+            setTimeout(() => {
+              window.print();
+            }, 300);
+          }
+        };
+
+        window.onafterprint = () => {
+          window.close();
+        };
       </script>
     </body>
     </html>
