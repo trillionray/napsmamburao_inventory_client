@@ -208,58 +208,129 @@ const OrdersView = () => {
       .join("");
 
     const html = `
-      <html>
-        <body style="font-family: monospace; width:280px; margin:auto;">
-          <div style="text-align:center; font-weight:bold;">
-            NAPS RESTAURANT MAMBURAO
-          </div>
+    <html>
+    <head>
+      <title>Receipt</title>
 
-          <!--
-          <div style="text-align:center;">
-            TIN: 149-826-116-00000
-          </div>
-          -->
+      <style>
+        @page {
+          size: 58mm auto;   /* thermal paper size */
+          margin: 0;
+        }
 
-          <div style="text-align:center;">
-            CEL NO: 0945 377 8649
+        html, body {
+          width: 80mm;
+          margin: 0;
+          padding: 0;
+          font-family: monospace;
+          font-size: 12px;
+        }
 
-          <div>.........................</div>
-          <div>Ref Id: ${orderData._id}</div>
-          <div>Order: ${orderData.orderName}</div>
-          <div>Cashier: ${orderData.staffName}</div>
-          <div>
-            Date: ${new Date(order.createdAt).toLocaleDateString("en-PH", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </div>
-          <div>.........................</div>
-          ${itemsHTML}
-         <div>.........................</div>
+        .receipt {
+          width: 76mm;   /* slight inner padding */
+          padding: 2mm;
+          box-sizing: border-box;
+        }
 
-          <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
-          <div>Pax: ${orderData.pax}</div>
-          <div>Discounted Pax: ${orderData.discountedPax}</div>
+        .center {
+          text-align: center;
+        }
 
-          <div>
-            Discount: ${orderData.subtotal / orderData.pax * orderData.discountedPax * orderData.discount / 100} 
-            (${orderData.discount}%)
-          </div>
+        .line {
+          border-top: 1px dashed black;
+          margin: 6px 0;
+        }
 
-          <div><b>Grand Total: ₱${formatMoney(orderData.grandTotal)}</b></div>
-          <div>Cash: ₱${formatMoney(orderData.cash)}</div>
-          <div>
-            Change: ₱${formatMoney(orderData.cash - orderData.grandTotal)}
-          </div>
-          <div>.........................</div>
-          <div style="text-align:center;">Naps Sarap Kain po! <br /> Thank you!</div>
+        .item {
+          margin-bottom: 4px;
+        }
 
-          <script>
-            window.onload = () => window.print();
-          </script>
-        </body>
-      </html>
+        .bold {
+          font-weight: bold;
+        }
+
+        @media print {
+          body {
+            margin: 0;
+          }
+        }
+      </style>
+    </head>
+
+    <body>
+      <div class="receipt">
+
+        <div class="center bold">
+          NAPS RESTAURANT MAMBURAO
+        </div>
+
+        <div class="center">
+          CEL NO: 0945 377 8649
+        </div>
+
+        <div class="line"></div>
+
+        <div>Ref Id: ${orderData._id}</div>
+        <div>Order: ${orderData.orderName}</div>
+        <div>Cashier: ${orderData.staffName}</div>
+
+        <div>
+          Date:
+          ${new Date(orderData.createdAt).toLocaleDateString("en-PH", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </div>
+
+        <div class="line"></div>
+
+        ${itemsHTML}
+
+        <div class="line"></div>
+
+        <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
+        <div>Pax: ${orderData.pax}</div>
+        <div>Discounted Pax: ${orderData.discountedPax}</div>
+
+        <div>
+          Discount:
+          ₱${formatMoney(
+            (orderData.subtotal / orderData.pax) *
+            orderData.discountedPax *
+            (orderData.discount / 100)
+          )}
+          (${orderData.discount}%)
+        </div>
+
+        <div class="bold">
+          Grand Total: ₱${formatMoney(orderData.grandTotal)}
+        </div>
+
+        <div>Cash: ₱${formatMoney(orderData.cash)}</div>
+
+        <div>
+          Change:
+          ₱${formatMoney(orderData.cash - orderData.grandTotal)}
+        </div>
+
+        <div class="line"></div>
+
+        <div class="center">
+          Naps Sarap Kain po! <br />
+          Thank you!
+        </div>
+
+      </div>
+
+      <script>
+        window.onload = () => {
+          window.print();
+          window.onafterprint = () => window.close();
+        };
+      </script>
+    </body>
+    </html>
     `;
 
     const win = window.open("", "_blank");
