@@ -214,39 +214,49 @@ const OrdersView = () => {
 
       <style>
         @page {
-          size: 58mm auto;   /* thermal paper size */
-          margin: 0;
+          size: A4;
+          margin: 10mm;
         }
 
         html, body {
-          width: 80mm;
           margin: 0;
           padding: 0;
+          width: 100%;
           font-family: monospace;
-          font-size: 12px;
-        }
-
-        .receipt {
-          width: 76mm;   /* slight inner padding */
-          padding: 2mm;
-          box-sizing: border-box;
-        }
-
-        .center {
+          font-size: 22px;   /* BIGGER TEXT */
           text-align: center;
         }
 
+        .receipt {
+          width: 100%;
+          padding: 20px;
+          box-sizing: border-box;
+        }
+
         .line {
-          border-top: 1px dashed black;
-          margin: 6px 0;
+          border-top: 2px dashed black;
+          margin: 20px 0;
         }
 
         .item {
-          margin-bottom: 4px;
+          margin-bottom: 16px;
+          line-height: 1.5;
+        }
+
+        .title {
+          font-size: 30px;
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+
+        .subtitle {
+          font-size: 20px;
+          margin-bottom: 10px;
         }
 
         .bold {
           font-weight: bold;
+          font-size: 24px;
         }
 
         @media print {
@@ -260,11 +270,11 @@ const OrdersView = () => {
     <body>
       <div class="receipt">
 
-        <div class="center bold">
+        <div class="title">
           NAPS RESTAURANT MAMBURAO
         </div>
 
-        <div class="center">
+        <div class="subtitle">
           CEL NO: 0945 377 8649
         </div>
 
@@ -309,15 +319,14 @@ const OrdersView = () => {
 
         <div>Cash: ₱${formatMoney(orderData.cash)}</div>
 
-        <div>
-          Change:
-          ₱${formatMoney(orderData.cash - orderData.grandTotal)}
+        <div class="bold">
+          Change: ₱${formatMoney(orderData.cash - orderData.grandTotal)}
         </div>
 
         <div class="line"></div>
 
-        <div class="center">
-          Naps Sarap Kain po! <br />
+        <div>
+          Naps Sarap Kain po! <br/>
           Thank you!
         </div>
 
