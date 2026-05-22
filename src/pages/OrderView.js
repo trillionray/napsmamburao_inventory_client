@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+
 
 const OrdersView = () => {
   const { orderId } = useParams();
@@ -250,7 +252,7 @@ const OrdersView = () => {
         }
 
         .subtitle {
-          font-size: 30px;
+          font-size: 20px;
           margin-bottom: 10px;
         }
 
@@ -320,7 +322,9 @@ const OrdersView = () => {
         <div>Cash: ₱${formatMoney(orderData.cash)}</div>
 
         <div class="bold">
-          Change: ₱${formatMoney(orderData.cash - orderData.grandTotal)}
+          Change: ₱${formatMoney(
+            Math.max(0, (orderData.cash || 0) - orderData.grandTotal)
+          )}
         </div>
 
         <div class="line"></div>
@@ -352,6 +356,33 @@ const OrdersView = () => {
   const handleBillOut = async () => {
     if (!window.confirm("Bill out this order?")) return;
 
+    const total = Number(order.grandTotal || 0);
+    const paid = Number(cash || 0);
+
+    // ✅ CASE 1: ZERO CASH (online / delivery / OTH)
+    if (paid === 0) {
+      const result = await Swal.fire({
+        icon: "info",
+        title: "No Cash Provided",
+        text: "No cash was entered. Proceed as ONLINE / DELIVERY / OTH transaction?",
+        showCancelButton: true,
+        confirmButtonText: "Yes, proceed",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!result.isConfirmed) return;
+    }
+
+    // ❌ CASE 2: INSUFFICIENT CASH (only if not zero-case override)
+    if (paid > 0 && paid < total) {
+      await Swal.fire({
+        icon: "error",
+        title: "Insufficient Cash",
+        text: `Cash must be at least ₱${total.toFixed(2)}`,
+      });
+      return;
+    }
+
     const res = await fetch(
       `${process.env.REACT_APP_API_URL2}/orders/${orderId}/bill`,
       {
@@ -361,7 +392,7 @@ const OrdersView = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
-          cash,
+          cash: paid,
         }),
       }
     );
@@ -371,12 +402,10 @@ const OrdersView = () => {
 
     setOrder(updated);
 
-    // ✅ IMPORTANT: wait for UI state then print
     setTimeout(() => {
-      printReceipt(updated, cash);
+      printReceipt(updated);
     }, 300);
   };
-
   
   const deleteOrder = async (id) => {
   if (!window.confirm("Delete this order?")) return;
