@@ -173,7 +173,8 @@ const MyTimeLogs = () => {
       body: JSON.stringify({ tasks: editTasks }),
     })
       .then((res) => res.json())
-      .then(() => {
+      .then((data) => {
+        console.log(data)
         notyf.success("Tasks updated");
         setEditId(null);
         setEditTasks([]);
