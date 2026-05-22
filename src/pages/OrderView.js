@@ -223,7 +223,7 @@ const OrdersView = () => {
           padding: 0;
           width: 100%;
           font-family: monospace;
-          font-size: 22px;   /* BIGGER TEXT */
+          font-size: 30px;   /* BIGGER TEXT */
           text-align: center;
         }
 
@@ -250,7 +250,7 @@ const OrdersView = () => {
         }
 
         .subtitle {
-          font-size: 20px;
+          font-size: 30px;
           margin-bottom: 10px;
         }
 
