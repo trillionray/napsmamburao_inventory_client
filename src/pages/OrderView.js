@@ -1,355 +1,633 @@
-import { useEffect, useMemo, useState } from "react";
-import { Notyf } from "notyf";
-import "notyf/notyf.min.css";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 
-import {
-  Container,
-  Spinner,
-  Row,
-  Col,
-  Form,
-  Button,
-  Card,
-} from "react-bootstrap";
+const OrdersView = () => {
+  const { orderId } = useParams();
+  const navigate = useNavigate();
 
-import DataTable from "react-data-table-component";
-import "bootstrap/dist/css/bootstrap.min.css";
+  const [order, setOrder] = useState({
+    ordered: [],
+    subtotal: 0,
+    discount: 0,
+    grandTotal: 0,
+    pax: 1,
+    discountedPax: 0,
+    cash: 0,
+    status: "pending",
+  });
 
-const notyf = new Notyf();
+  const [menu, setMenu] = useState([]);
+  const [filteredMenu, setFilteredMenu] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-const MyTimeLogsSummary = () => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // billing inputs
+  const [pax, setPax] = useState(1);
+  const [discountedPax, setDiscountedPax] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [showDiscount, setShowDiscount] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem("token");
+  const [cash, setCash] = useState(0);
 
-  useEffect(() => {
-    fetchTimeLogs();
-  }, []);
+  const change = Number(cash || 0) - Number(order.grandTotal || 0);
+  // ==============================
+  // NORMALIZER
+  // ==============================
+  const normalizeOrder = (data) => ({
+    ...data,
+    ordered: Array.isArray(data?.ordered) ? data.ordered : [],
+    subtotal: Number(data?.subtotal || 0),
+    discount: Number(data?.discount || 0),
+    grandTotal: Number(data?.grandTotal || 0),
+    pax: Number(data?.pax || 1),
+    discountedPax: Number(data?.discountedPax || 0),
+    cash: Number(data?.cash || 0),
+    status: data?.status || "pending",
+  });
 
-  const fetchTimeLogs = async () => {
-    setLoading(true);
-
+  // ==============================
+  // FETCH ORDER
+  // ==============================
+  const fetchOrder = async () => {
     try {
-      const res = await fetch(`${API_URL}/timelogs/my`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      setLoading(true);
+
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL2}/orders/${orderId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       const data = await res.json();
+      const normalized = normalizeOrder(data);
 
-      setLogs(data.timelogs || []);
-    } catch {
-      notyf.error("Failed to fetch time logs");
+      setOrder(normalized);
+
+      setPax(normalized.pax);
+      setDiscountedPax(normalized.discountedPax);
+      setDiscount(normalized.discount);
+      setCash(normalized.cash || 0);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // FILTER BY DATE RANGE
-  const filteredLogs = useMemo(() => {
-    return logs.filter((row) => {
-      if (!row.timeIn) return false;
+  // ==============================
+  // LOAD MENU
+  // ==============================
+  const loadMenu = async () => {
+    const res =
+      order?.serviceType?.toLowerCase() === "delivery"
+        ? await import("../deliveryMenu")
+        : await import("../menuData");
 
-      const logDate = new Date(row.timeIn);
+    setMenu(res.default);
+    setFilteredMenu(res.default);
+  };
 
-      if (startDate) {
-        const from = new Date(startDate);
-        from.setHours(0, 0, 0, 0);
+  useEffect(() => {
+    if (order?.serviceType) loadMenu();
+  }, [order?.serviceType]);
 
-        if (logDate < from) return false;
+  useEffect(() => {
+    fetchOrder();
+  }, [orderId]);
+
+  // ==============================
+  // SEARCH MENU
+  // ==============================
+  useEffect(() => {
+    const keyword = search.toLowerCase();
+
+    setFilteredMenu(
+      menu.filter(
+        (item) =>
+          item.name?.toLowerCase().includes(keyword) ||
+          item.category?.toLowerCase().includes(keyword) ||
+          item.description?.toLowerCase().includes(keyword)
+      )
+    );
+  }, [search, menu]);
+
+  // ==============================
+  // APPLY DISCOUNT SETTINGS
+  // ==============================
+  const applyDiscount = async () => {
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/discount`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          pax,
+          discountedPax,
+          discount,
+        }),
       }
+    );
 
-      if (endDate) {
-        const to = new Date(endDate);
-        to.setHours(23, 59, 59, 999);
+    const data = await res.json();
+    setOrder(normalizeOrder(data));
+    setShowDiscount(false);
 
-        if (logDate > to) return false;
+  };
+
+  // ==============================
+  // ADD ITEM
+  // ==============================
+  const handleAddProduct = async (product) => {
+    if (order.status === "billed") return;
+
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/add`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          productName: product.name,
+          quantity: 1,
+          price: product.price,
+        }),
       }
+    );
 
-      return true;
-    });
-  }, [logs, startDate, endDate]);
+    const data = await res.json();
+    setOrder(normalizeOrder(data));
+  };
 
-  // GROUP SAME DATE + CALCULATE MD
-  const mdSummary = useMemo(() => {
-    const grouped = {};
+  // ==============================
+  // UPDATE QTY
+  // ==============================
+  const updateQuantity = async (productName, quantity) => {
+    if (order.status === "billed") return;
 
-    filteredLogs.forEach((row) => {
-      if (!row.timeIn) return;
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/item`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ productName, quantity }),
+      }
+    );
 
-      const dateKey = new Date(row.timeIn)
-        .toISOString()
-        .split("T")[0];
+    const data = await res.json();
+    setOrder(normalizeOrder(data));
+  };
 
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = {
-          date: new Date(row.timeIn).toLocaleDateString(
-            "en-US",
-            {
+  const printReceipt = (orderData) => {
+    const formatMoney = (num) => Number(num || 0).toFixed(2);
+
+    const itemsHTML = (orderData.ordered || [])
+      .map((item) => {
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+
+        return `
+          <div class="item">
+            <div><b>${item.productName}</b></div>
+            <div>${qty} x ${formatMoney(price)} = ₱${formatMoney(qty * price)}</div>
+          </div>
+        `;
+      })
+      .join("");
+
+    const html = `
+      <html>
+        <body style="font-family: monospace; width:280px; margin:auto;">
+          <div style="text-align:center; font-weight:bold;">
+            NAPS RESTAURANT MAMBURAO
+          </div>
+
+          <!--
+          <div style="text-align:center;">
+            TIN: 149-826-116-00000
+          </div>
+          -->
+
+          <div style="text-align:center;">
+            CEL NO: 0945 377 8649
+
+          <div>.........................</div>
+          <div>Ref Id: ${orderData._id}</div>
+          <div>Order: ${orderData.orderName}</div>
+          <div>Cashier: ${orderData.staffName}</div>
+          <div>
+            Date: ${new Date(order.createdAt).toLocaleDateString("en-PH", {
+              year: "numeric",
               month: "long",
               day: "numeric",
-              year: "numeric",
-            }
-          ),
-          hours: 0,
-        };
-      }
-
-      grouped[dateKey].hours += Number(
-        row.totalTime || 0
-      );
-    });
-
-    const details = Object.values(grouped).map(
-      (item) => ({
-        date: item.date,
-        hours: item.hours,
-        md: item.hours >= 8 ? 1 : 0.5,
-      })
-    );
-
-    const total = details.reduce(
-      (sum, item) => sum + item.md,
-      0
-    );
-
-    return {
-      details,
-      total,
-    };
-  }, [filteredLogs]);
-
-  const columns = [
-    {
-      name: "Date",
-      selector: (row) =>
-        row.timeIn
-          ? new Date(
-              row.timeIn
-            ).toLocaleDateString()
-          : "-",
-      sortable: true,
-    },
-    {
-      name: "Time In",
-      selector: (row) =>
-        row.timeIn
-          ? new Date(
-              row.timeIn
-            ).toLocaleTimeString()
-          : "-",
-    },
-    {
-      name: "Time Out",
-      selector: (row) =>
-        row.timeOut
-          ? new Date(
-              row.timeOut
-            ).toLocaleTimeString()
-          : "-",
-    },
-    {
-      name: "Total Hours",
-      selector: (row) =>
-        row.totalTime
-          ? row.totalTime.toFixed(2)
-          : "-",
-    },
-    {
-      name: "Correction",
-      cell: (row) => (
-        <span
-          style={{
-            fontWeight: "bold",
-            color:
-              row.correctionStatus ===
-              "approved"
-                ? "green"
-                : row.correctionStatus ===
-                  "disapproved"
-                ? "red"
-                : row.correctionStatus ===
-                  "filed"
-                ? "orange"
-                : "gray",
-          }}
-        >
-          {(
-            row.correctionStatus ||
-            "none"
-          ).toUpperCase()}
-        </span>
-      ),
-    },
-    {
-      name: "Notes",
-      cell: (row) =>
-        row.tasks?.length ? (
-          <div>
-            {row.tasks.map(
-              (task, index) => (
-                <div key={index}>
-                  • {task}
-                </div>
-              )
-            )}
+            })}
           </div>
-        ) : (
-          "-"
-        ),
-      grow: 2,
-    },
-  ];
+          <div>.........................</div>
+          ${itemsHTML}
+         <div>.........................</div>
+
+          <div>Subtotal: ₱${formatMoney(orderData.subtotal)}</div>
+          <div>Pax: ${orderData.pax}</div>
+          <div>Discounted Pax: ${orderData.discountedPax}</div>
+
+          <div>
+            Discount: ${orderData.subtotal / orderData.pax * orderData.discountedPax * orderData.discount / 100} 
+            (${orderData.discount}%)
+          </div>
+
+          <div><b>Grand Total: ₱${formatMoney(orderData.grandTotal)}</b></div>
+          <div>Cash: ₱${formatMoney(orderData.cash)}</div>
+          <div>
+            Change: ₱${formatMoney(orderData.cash - orderData.grandTotal)}
+          </div>
+          <div>.........................</div>
+          <div style="text-align:center;">Naps Sarap Kain po! <br /> Thank you!</div>
+
+          <script>
+            window.onload = () => window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+  };
+  // ==============================
+  // BILL OUT
+  // ==============================
+  const handleBillOut = async () => {
+    if (!window.confirm("Bill out this order?")) return;
+
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/bill`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          cash,
+        }),
+      }
+    );
+
+    const data = await res.json();
+    const updated = normalizeOrder(data);
+
+    setOrder(updated);
+
+    // ✅ IMPORTANT: wait for UI state then print
+    setTimeout(() => {
+      printReceipt(updated, cash);
+    }, 300);
+  };
+
+  
+  const deleteOrder = async (id) => {
+  if (!window.confirm("Delete this order?")) return;
+
+  try {
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL2}/orders/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Order deleted");
+      navigate("/orders"); // go back to list
+    } else {
+      alert(data.message || "Delete failed");
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+  if (loading) return <p>Loading order...</p>;
 
   return (
-    <Container className="mt-4">
-      <h2 className="text-center mb-4">
-        My Time Logs Summary
-      </h2>
+    <div className="container mt-4">
 
-      {/* DATE FILTER */}
-      <Row className="mb-4">
-        <Col md={4}>
-          <Form.Group>
-            <Form.Label>
-              From
-            </Form.Label>
+      {/* HEADER */}
+      <div className="d-flex justify-content-between">
+        <h2>{order.orderName}</h2>
 
-            <Form.Control
-              type="date"
-              value={startDate}
-              onChange={(e) =>
-                setStartDate(
-                  e.target.value
-                )
-              }
-            />
-          </Form.Group>
-        </Col>
+        <div className="d-flex gap-2 mb-3">
+          <button className="btn btn-warning" onClick={handleBillOut}>
+            Bill Out
+          </button>
+         {/* {order.status === "pending" && (
+            <button
+              className="btn btn-danger"
+              onClick={() => deleteOrder(orderId)}
+            >
+              Delete
+            </button>
+          )}*/}
 
-        <Col md={4}>
-          <Form.Group>
-            <Form.Label>
-              To
-            </Form.Label>
+          {order.status !== "cancelled" && (
+              <button
+                className="btn btn-outline-danger"
+                onClick={async () => {
+                  if (!window.confirm("Cancel this order?")) return;
 
-            <Form.Control
-              type="date"
-              value={endDate}
-              onChange={(e) =>
-                setEndDate(
-                  e.target.value
-                )
-              }
-            />
-          </Form.Group>
-        </Col>
+                  try {
+                    const res = await fetch(
+                      `${process.env.REACT_APP_API_URL2}/orders/${orderId}/cancel`,
+                      {
+                        method: "PUT",
+                        headers: {
+                          Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                      }
+                    );
 
-        <Col
-          md={4}
-          className="d-flex align-items-end"
-        >
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setStartDate("");
-              setEndDate("");
-            }}
-          >
-            Clear
-          </Button>
-        </Col>
-      </Row>
+                    const data = await res.json();
 
-      {/* MD SUMMARY */}
-      <Card className="mb-4 p-3">
-        <h5>Total Days Worked</h5>
-
-        {mdSummary.details.length >
-        0 ? (
-          <>
-            {mdSummary.details.map(
-              (
-                item,
-                index
-              ) => (
-                <div key={index}>
-                  {item.date}
-                  {" — "}
-                  {item.hours.toFixed(
-                    2
-                  )}{" "}
-                  hrs
-                  {" : "}
-                  <strong>
-                    {item.md} MD
-                  </strong>
-                </div>
-              )
+                    if (res.ok) {
+                      setOrder(normalizeOrder(data.order));
+                      alert("Order cancelled");
+                    } else {
+                      alert(data.message || "Cancel failed");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+              >
+                Cancel Order
+              </button>
             )}
 
-            <hr />
-
-            <h5>
-              Total of{" "}
-              <strong>
-                {
-                  mdSummary.total
-                }{" "}
-                MD
-              </strong>
-            </h5>
-          </>
-        ) : (
-          <div>
-            No records found
-          </div>
-        )}
-      </Card>
-
-      <div className="mb-2">
-        Showing{" "}
-        <strong>
-          {filteredLogs.length}
-        </strong>{" "}
-        records
+          <button className="btn btn-danger" onClick={() => navigate("/orders")}>
+            x
+          </button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="text-center">
-          <Spinner animation="border" />
-        </div>
-      ) : (
-        <div
-          style={{
-            overflowX:
-              "auto",
-          }}
-        >
-          <DataTable
-            columns={
-              columns
-            }
-            data={
-              filteredLogs
-            }
-            pagination
-            highlightOnHover
-            responsive
-            striped
-            dense
-            persistTableHead
-          />
+      <p>Cashier: {order.staffName}</p>
+      <p> Date: {new Date(order.createdAt).toLocaleString()}</p>
+      <p >Status: <span
+                      className={
+                        order.status === "billed"
+                          ? "text-success"
+                          : order.status === "cancelled"
+                          ? "text-danger"
+                          : "text-warning"
+                      }
+                    >
+                      {order.status}
+                    </span>
+                       </p>
+
+      <hr />
+
+      {/* BILLING */}
+      <h5>Billing</h5>
+
+      <p>Subtotal: ₱{order.subtotal}</p>
+
+      {/* BETWEEN SUBTOTAL AND GRAND TOTAL */}
+      <button
+        className="btn btn-outline-light mb-2"
+        onClick={() => setShowDiscount(!showDiscount)}
+      >
+        {showDiscount ? "Hide Discount" : "Show Discount"}
+      </button>
+
+      {showDiscount && (
+        <div className="card p-3 mb-3">
+
+          <h6 className="mb-3">Discount</h6>
+
+          {/* PAX */}
+          <div className="row mb-2 align-items-center">
+            <div className="col-4">
+              <label>PAX</label>
+            </div>
+            <div className="col-8">
+              <input
+                className="form-control"
+                type="number"
+                min="1"
+                value={pax}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setPax(value);
+
+                  // auto-adjust discountedPax if it exceeds pax
+                  if (discountedPax > value) {
+                    setDiscountedPax(value);
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Discounted PAX */}
+          <div className="row mb-2 align-items-center">
+            <div className="col-4">
+              <label>Discounted PAX</label>
+            </div>
+            <div className="col-8">
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                max={pax}
+                value={discountedPax}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+
+                  if (value > pax) {
+                    setDiscountedPax(pax);
+                  } else {
+                    setDiscountedPax(value);
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Discount % */}
+          <div className="row mb-3 align-items-center">
+            <div className="col-4">
+              <label>Discount %</label>
+            </div>
+            <div className="col-8">
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                max="100"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          {/* APPLY BUTTON */}
+          <button
+            className="btn btn-primary w-100"
+            onClick={applyDiscount}
+            // disabled={order.status === "billed"}
+          >
+            Apply
+          </button>
+
         </div>
       )}
-    </Container>
+
+      <p>Discount: {order.discount}% = P{order.subtotal / pax * discountedPax * (order.discount /100)}</p>
+      <h5>Grand Total: ₱{order.grandTotal}</h5>
+
+      <div className="card p-3 mb-3">
+
+        <h6 className="mb-3">Payment</h6>
+
+        <div className="row mb-2 align-items-center">
+          <div className="col-4">
+            <label>Cash</label>
+          </div>
+
+          <div className="col-8">
+            <input
+              className="form-control"
+              type="number"
+              min="0"
+              value={cash}
+              onChange={(e) => setCash(Number(e.target.value))}
+            />
+          </div>
+        </div>
+
+        <h5>
+          Change: ₱{change > 0 ? change.toFixed(2) : "0.00"}
+        </h5>
+
+      </div>
+
+      <hr />
+
+      {/* ITEMS */}
+      <h4>Items</h4>
+
+      <button className="btn btn-success mb-3" onClick={() => setShowModal(true)}>
+        Add Items
+      </button>
+
+      <ul className="list-group">
+        {order.ordered.map((item, i) => (
+          <li key={i} className="list-group-item d-flex justify-content-between">
+
+            <div>
+              <b>{item.productName}</b><br />
+              ₱{item.price} x {item.quantity}
+            </div>
+
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() =>
+                  updateQuantity(item.productName, item.quantity - 1)
+                }
+              >
+                -
+              </button>
+
+              <span>{item.quantity}</span>
+
+              <button
+                className="btn btn-success btn-sm"
+                onClick={() =>
+                  updateQuantity(item.productName, item.quantity + 1)
+                }
+              >
+                +
+              </button>
+            </div>
+
+          </li>
+        ))}
+      </ul>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-xl">
+            <div className="modal-content">
+
+              <div className="modal-header d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">Add Items</h5>
+
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm bg-danger"
+                  onClick={() => setShowModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="modal-body">
+
+                <input
+                  className="form-control mb-3"
+                  placeholder="Search menu..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+
+                <table className="table">
+                  <tbody>
+                    {filteredMenu.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.name}</td>
+                        <td>₱{p.price}</td>
+                        <td>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleAddProduct(p)}
+                          >
+                            Add
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 };
 
-export default MyTimeLogsSummary;
+export default OrdersView;
