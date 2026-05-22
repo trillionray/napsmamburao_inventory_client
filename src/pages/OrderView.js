@@ -229,7 +229,7 @@ const OrdersView = () => {
 
         .receipt {
           width: 100%;
-          padding: 20px;
+          padding: 30px;
           box-sizing: border-box;
         }
 
