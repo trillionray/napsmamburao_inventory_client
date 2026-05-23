@@ -148,7 +148,18 @@ const OrdersView = () => {
   // ADD ITEM
   // ==============================
   const handleAddProduct = async (product) => {
-    if (order.status === "billed") return;
+    console.log("loading add..")
+
+    if (order.status === "billed") {
+      await Swal.fire({
+        icon: "error",
+        title: "Order already billed",
+        text: ``,
+        timer: 2000, 
+        showConfirmButton: false,
+      });
+      return;
+    }
 
     const res = await fetch(
       `${process.env.REACT_APP_API_URL2}/orders/${orderId}/add`,
@@ -167,6 +178,17 @@ const OrdersView = () => {
     );
 
     const data = await res.json();
+    console.log(data);
+
+    if(data){
+      await Swal.fire({
+        icon: "success",
+        title: "Item added successfully",
+        text: ``,
+        timer: 2000, 
+        showConfirmButton: false,
+      });
+    }
     setOrder(normalizeOrder(data));
   };
 

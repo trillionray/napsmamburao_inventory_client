@@ -18,6 +18,7 @@ import AllTimeLogs from './pages/AllTimeLogs';
 import ProductsPage from './pages/AllTimeLogs';
 import OrdersPage from './pages/OrdersPage';
 import OrderView from './pages/OrderView';
+import OrdersSummary from './pages/OrdersSummary';
 
 import { Notyf } from 'notyf'; // ✅ Import Notyf
 import 'notyf/notyf.min.css'; // ✅ Add this
@@ -98,7 +99,10 @@ function App() {
 
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/summary" element={<OrdersSummary />} />
             <Route path="/orders/:orderId" element={<OrderView />} />
+            
+
 
           </Routes>
         </Container>
