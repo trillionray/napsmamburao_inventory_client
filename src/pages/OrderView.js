@@ -227,7 +227,7 @@ const OrdersView = () => {
           padding: 0;
           width: 100%;
           font-family: monospace;
-          font-size: 34px;
+          font-size: 45px;
           text-align: center;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
@@ -251,19 +251,16 @@ const OrdersView = () => {
         }
 
         .title {
-          font-size: 36px;
           font-weight: bold;
           margin-bottom: 10px;
         }
 
         .subtitle {
-          font-size: 28px;
           margin-bottom: 10px;
         }
 
         .bold {
           font-weight: bold;
-          font-size: 30px;
         }
 
         * {

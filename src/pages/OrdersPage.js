@@ -180,39 +180,54 @@ const OrdersPage = () => {
             <p>No orders available</p>
           ) : (
             orders.map((order) => (
-              <div className="col-md-3 mb-3" key={order._id}>
+              <div className="col-6 col-md-3 mb-3" key={order._id}>
                 <div
                   className="card p-3 h-100"
-                  style={{ cursor: "pointer" }}
+                  style={{
+                    cursor: "pointer",
+
+                    border: "6px solid white", // thick white outline
+                    borderRadius: "18px",
+
+                    boxShadow:
+                      "0 0 0 3px rgba(255,255,255,0.9), 0 6px 20px rgba(0,0,0,0.15)",
+
+                    overflow: "hidden",
+                  }}
                   onClick={() => handleSelectOrder(order._id)}
                 >
                   <h5>{order.orderName}</h5>
 
                   <p>Staff: {order.staffName}</p>
+
                   <p>Type: {order.serviceType}</p>
-                  <p>Pax: {order.pax}</p> {/* optional display */}
+
+                  <p>Pax: {order.pax}</p>
 
                   <hr />
 
                   <p>Subtotal: ₱{order.subtotal}</p>
+
                   <p>Discount: {order.discount} %</p>
 
                   <p className="fw-bold">
                     Grand Total: ₱{order.grandTotal}
                   </p>
 
-                 <p >Status: <span
-                                 className={
-                                   order.status === "billed"
-                                     ? "text-success"
-                                     : order.status === "cancelled"
-                                     ? "text-danger"
-                                     : "text-warning"
-                                 }
-                               >
-                                 {order.status}
-                               </span>
-                                  </p>
+                  <p>
+                    Status:{" "}
+                    <span
+                      className={
+                        order.status === "billed"
+                          ? "text-success"
+                          : order.status === "cancelled"
+                          ? "text-danger"
+                          : "text-warning"
+                      }
+                    >
+                      {order.status}
+                    </span>
+                  </p>
 
                   <small>
                     {order.createdAt
