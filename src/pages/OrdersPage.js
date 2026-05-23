@@ -22,7 +22,7 @@ const OrdersPage = () => {
     try {
       setLoading(true);
 
-      const res = await fetch(`${process.env.REACT_APP_API_URL2}/orders`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL2}/orders/today`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -177,7 +177,7 @@ const OrdersPage = () => {
       ) : (
         <div className="row">
           {orders.length === 0 ? (
-            <p>No orders available</p>
+            <p>No orders submitted today</p>
           ) : (
             orders.map((order) => (
               <div className="col-6 col-md-3 mb-3" key={order._id}>
