@@ -1365,8 +1365,50 @@ const menu = [
 	price: 259,
 	image: "",
 	category: "Naps Sarap Meals"
+},
+
+// pasalubongs
+{
+	id: 159,
+	name: "Butcheron / Bucheron",
+	description: "",
+	price: 219,
+	image: "",
+	category: "Pasalubong"
+},
+{
+	id: 160,
+	name: "Special Bagoong (Large)",
+	description: "",
+	price: 219,
+	image: "",
+	category: "Pasalubong"
+},
+{
+	id: 161,
+	name: "Special Bagoong (Medium)",
+	description: "",
+	price: 159,
+	image: "",
+	category: "Pasalubong"
+},
+{
+	id: 162,
+	name: "Special Bagoong (Small)",
+	description: "",
+	price: 99,
+	image: "",
+	category: "Pasalubong"
+},
+{
+	id: 163,
+	name: "Naps Honey",
+	description: "",
+	price: 399,
+	image: "",
+	category: "Pasalubong"
 }
-// last id 158
+// last id 163
 ];
 
 const deliveryMenu = menu.map(item => ({
