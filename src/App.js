@@ -37,42 +37,64 @@ function App() {
   };
 
   useEffect(() => {
+    const initialize = async () => {
+      notyf.open({
+        type: "info",
+        message: "Waking up servers...",
+        duration: 4000,
+      });
 
-     notyf.error({
-      type: 'info',
-      message: 'Please wait 1–3 mins, server might be slow...',
-      duration: 5000, // 5 seconds
-      ripple: true,
-    });
+      // Wake servers (non-blocking)
+      const wakePromises = [
+        fetch(`${process.env.REACT_APP_API_URL}/wake`)
+          .then(res => ({ server: "API 1", ok: res.ok }))
+          .catch(() => ({ server: "API 1", ok: false })),
 
+        fetch(`${process.env.REACT_APP_API_URL2}/wake`)
+          .then(res => ({ server: "API 2", ok: res.ok }))
+          .catch(() => ({ server: "API 2", ok: false })),
+      ];
 
-    fetch(`${process.env.REACT_APP_API_URL}/users/details`, {
-      headers: {
-        Authorization: `Bearer ${ localStorage.getItem('token') }`
+      const results = await Promise.all(wakePromises);
+
+      // Show per-server status
+      results.forEach(r => {
+        if (r.ok) {
+          notyf.success(`${r.server} is awake`);
+        } else {
+          notyf.error(`${r.server} failed to wake`);
+        }
+      });
+
+      try {
+        const res = await fetch(
+          `${process.env.REACT_APP_API_URL}/users/details`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        const data = await res.json();
+
+        if (data && data._id) {
+          setUser({
+            id: data._id,
+            role: data.role,
+            name: data.name,
+          });
+        } else {
+          setUser({ id: null, role: null });
+        }
+      } catch (error) {
+        console.log(error);
+        setUser({ id: null, role: null });
+        notyf.error("Failed to load user details");
       }
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log(data)
-      if (data && data._id) {
-        setUser({
-          id: data._id,
-          role: data.role,
-          name: data.name
-        });
-      } else {
-        setUser({
-          id: null,
-          role: null
-        });
-      }
+    };
 
-    })
-    .catch((error) => {
-      console.log(error)
-      setUser({ id: null, role: null });
-    });
-
+    initialize();
   }, []);
 
   useEffect(() => {
