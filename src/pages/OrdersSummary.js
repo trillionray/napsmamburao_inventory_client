@@ -275,20 +275,16 @@ const OrdersSummary = () => {
 
       const days =
         new Set(
-          billedOrders.map(
-            (
-              o
-            ) =>
-              new Date(
-                o.createdAt
-              )
-                .toISOString()
-                .split(
-                  "T"
-                )[0]
-          )
-        )
-          .size;
+          billedOrders.map((o) => {
+            const d = new Date(o.createdAt);
+
+            return `${d.getFullYear()}-${
+              String(d.getMonth() + 1).padStart(2, "0")
+            }-${
+              String(d.getDate()).padStart(2, "0")
+            }`;
+          })
+        ).size;
 
       const avgPerDay =
         days
