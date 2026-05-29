@@ -36,8 +36,13 @@ export default function AppNavbar() {
                 {user.role === "admin" && (
                   <>
                     
+                    <Nav.Link as={NavLink} to="/salaries">Rates</Nav.Link>
                     
                     <Nav.Link as={NavLink} to="/admin/timelogs">AllLogs</Nav.Link>
+
+                    
+
+                    <Nav.Link as={NavLink} to="/payroll">Payroll</Nav.Link>
                   </>
                 )}
                 <Nav.Link as={NavLink} to="/logout">Logout</Nav.Link>
