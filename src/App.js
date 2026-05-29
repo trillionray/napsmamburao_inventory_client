@@ -20,6 +20,10 @@ import OrdersPage from './pages/OrdersPage';
 import OrderView from './pages/OrderView';
 import OrdersSummary from './pages/OrdersSummary';
 
+
+import Salaries from './pages/Salaries';
+import Payroll from './pages/Payroll';
+
 import { Notyf } from 'notyf'; // ✅ Import Notyf
 import 'notyf/notyf.min.css'; // ✅ Add this
 
@@ -123,7 +127,8 @@ function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/orders/summary" element={<OrdersSummary />} />
             <Route path="/orders/:orderId" element={<OrderView />} />
-            
+            <Route path="/salaries" element={<Salaries />} />
+            <Route path="/payroll" element={<Payroll />} />
 
 
           </Routes>
