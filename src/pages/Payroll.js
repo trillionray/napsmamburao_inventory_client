@@ -111,7 +111,15 @@ const Payroll = () => {
       if (!row.timeIn) return;
 
       const userId = row.userId?._id;
-      const date = new Date(row.timeIn).toISOString().split("T")[0];
+      const d = new Date(row.timeIn);
+
+      const date =
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(d.getDate()).padStart(2, "0");
+
       const key = `${userId}-${date}`;
 
       const hours = Number(row.totalTime || 0);
@@ -151,9 +159,9 @@ const Payroll = () => {
       // ================= MD =================
       let md = 0;
 
-      if (item.totalHours >= 5.5) {
+      if (item.totalHours >= 8) {
         md = 1;
-      } else if (item.totalHours >= 4) {
+      } else if (item.totalHours >= 4 && item.totalHours >= 5.4) {
         md = 0.5;
       } else {
         md = item.totalHours / 8;
@@ -161,9 +169,9 @@ const Payroll = () => {
 
       let basePay = 0;
 
-      if (item.totalHours >= 5.5) {
+      if (item.totalHours >= 8) {
         basePay = salary; // full day
-      } else if (item.totalHours >= 4) {
+      } else if (item.totalHours >= 4 && item.totalHours >= 5.4) {
         basePay = salary * 0.5; // half day
       } else {
         basePay = item.totalHours * hourlyRate;

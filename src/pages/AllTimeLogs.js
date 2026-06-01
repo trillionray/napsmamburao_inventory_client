@@ -134,22 +134,22 @@ const AllTimeLogs = () => {
     filteredLogs.forEach((row) => {
       if (!row.timeIn) return;
 
-      const key = new Date(row.timeIn)
-        .toISOString()
-        .split("T")[0];
+      const d = new Date(row.timeIn);
+
+      const key =
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(d.getDate()).padStart(2, "0");
 
       if (!grouped[key]) {
         grouped[key] = {
-          date: new Date(
-            row.timeIn
-          ).toLocaleDateString(
-            "en-US",
-            {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            }
-          ),
+          date: d.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
           hours: 0,
           staff: new Set(),
           hasOT: false,
@@ -157,23 +157,17 @@ const AllTimeLogs = () => {
         };
       }
 
-      grouped[key].hours += Number(
-        row.totalTime || 0
-      );
+      grouped[key].hours += Number(row.totalTime || 0);
 
       grouped[key].staff.add(
-        row.userId?.name ||
-          "Unknown"
+        row.userId?.name || "Unknown"
       );
 
       if (row.OT === "approved") {
         grouped[key].hasOT = true;
       }
 
-      if (
-        row.holiday ===
-        "approved"
-      ) {
+      if (row.holiday === "approved") {
         grouped[key].hasHoliday = true;
       }
     });
@@ -183,15 +177,12 @@ const AllTimeLogs = () => {
       .map(([_, item]) => {
         let md = 0;
 
-        if (item.hours >= 8) {
+        if (item.hours >= 5.5) {
           md = 1;
         } else if (item.hours >= 4) {
           md = 0.5;
-        } else {
-          md = 0;
         }
 
-        // ONLY COUNT OT IF APPROVED
         const otHours =
           item.hasOT && item.hours > 9
             ? item.hours - 9
@@ -207,23 +198,19 @@ const AllTimeLogs = () => {
 
     return {
       details,
-      totalMD:
-        details.reduce(
-          (a, b) =>
-            a + b.md,
-          0
-        ),
+      totalMD: details.reduce(
+        (a, b) => a + b.md,
+        0
+      ),
 
       totalOT: details.reduce(
-        (sum, item) => sum + (item.otHours || 0),
+        (sum, item) => sum + item.otHours,
         0
-      ).toFixed(2),
+      ),
 
-      totalHoliday:
-        details.filter(
-          (x) =>
-            x.hasHoliday
-        ).length,
+      totalHoliday: details.filter(
+        (x) => x.hasHoliday
+      ).length,
     };
   }, [filteredLogs]);
   // ================= CORRECTION ACTION =================
