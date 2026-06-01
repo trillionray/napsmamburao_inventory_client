@@ -73,16 +73,22 @@ const Payroll = () => {
       );
     }
 
-    if (startDate) {
-      const from = new Date(startDate);
-      from.setHours(0, 0, 0, 0);
-      filtered = filtered.filter((log) => new Date(log.timeIn) >= from);
-    }
+    if (startDate || endDate) {
+      filtered = filtered.filter((log) => {
+        const d = new Date(log.timeIn);
 
-    if (endDate) {
-      const to = new Date(endDate);
-      to.setHours(23, 59, 59, 999);
-      filtered = filtered.filter((log) => new Date(log.timeIn) <= to);
+        const logDate =
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0");
+
+        if (startDate && logDate < startDate) return false;
+        if (endDate && logDate > endDate) return false;
+
+        return true;
+      });
     }
 
     setFilteredLogs(filtered);
@@ -161,7 +167,7 @@ const Payroll = () => {
 
       if (item.totalHours >= 8) {
         md = 1;
-      } else if (item.totalHours >= 4 && item.totalHours >= 5.4) {
+      } else if (item.totalHours >= 4 && item.totalHours <= 5.4) {
         md = 0.5;
       } else {
         md = item.totalHours / 8;
@@ -171,7 +177,7 @@ const Payroll = () => {
 
       if (item.totalHours >= 8) {
         basePay = salary; // full day
-      } else if (item.totalHours >= 4 && item.totalHours >= 5.4) {
+      } else if (item.totalHours >= 4 && item.totalHours <= 5.4) {
         basePay = salary * 0.5; // half day
       } else {
         basePay = item.totalHours * hourlyRate;
