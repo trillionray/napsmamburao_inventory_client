@@ -149,9 +149,25 @@ const Payroll = () => {
       const hourlyRate = salary / 8;
 
       // ================= MD =================
-      const md = Math.min(item.totalHours, 8) / 8;
+      let md = 0;
 
-      const basePay = Math.min(item.totalHours, 8) * hourlyRate;
+      if (item.totalHours >= 5.5) {
+        md = 1;
+      } else if (item.totalHours >= 4) {
+        md = 0.5;
+      } else {
+        md = item.totalHours / 8;
+      }
+
+      let basePay = 0;
+
+      if (item.totalHours >= 5.5) {
+        basePay = salary; // full day
+      } else if (item.totalHours >= 4) {
+        basePay = salary * 0.5; // half day
+      } else {
+        basePay = item.totalHours * hourlyRate;
+      }
 
       // ================= OT PAY =================
       const otPay = item.otHours * hourlyRate * 1.25;
