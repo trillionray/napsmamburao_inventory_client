@@ -28,7 +28,7 @@ export default function AppNavbar() {
 
                 <Nav.Link as={NavLink} to="/orders">Orders</Nav.Link>
                 <Nav.Link as={NavLink} to="/orders/summary">OrdersSummary</Nav.Link>
-                <Nav.Link as={NavLink} to="/items">Inventory</Nav.Link>
+                <Nav.Link as={NavLink} to="/items">Items</Nav.Link>
 
                 
                 <Nav.Link as={NavLink} to="/mytimelogs">MyLogs</Nav.Link>
