@@ -820,6 +820,76 @@ const menu = [
 	category: "Naps Group Meals"
 },
 
+/* Naps Family Meals */
+
+{
+	id: 164,
+	name: "Family Meal A",
+	description: `Soup x1, <br/> 
+	Fried Chicken Whole x1,  <br/>
+	Lumpiang Shanghai x1, <br/> 
+	Pancit Canton x1, <br/> 
+	Boneless Bangus x1, <br/> 
+	Chopsuey x1, <br/> 
+	Plain Rice x5, <br/> 
+	Pitcher of Iced Tea x1, <br/> 
+	Leche Flan x1`,
+	price: 2200,
+	image: "",
+	category: "Naps Family Meals"
+},
+
+{
+	id: 165,
+	name: "Family Meal B",
+	description: `
+	Sinigang na Hipon x1,  <br/> 
+	Fried Chicken Whole x1, <br/>
+	Lechon Kawali x1, <br/>
+	Pancit Canton x1, <br/>
+	Boneless Bangus x1, <br/>
+	Chopsuey x1, <br/>
+	Plain Rice x5, <br/>
+	Pitcher of Iced Tea x1, <br/>
+	Leche Flan x1`,
+	price: 2450,
+	image: "",
+	category: "Naps Family Meals"
+},
+
+{
+	id: 166,
+	name: "Family Meal C",
+	description: `Sinigang na Hipon x1, <br/>
+	Fried Chicken Whole x1, <br/>
+	Crispy Pata x1, <br/>
+	Pancit Canton x1, <br/>
+	Sweet & Sour Fish Fillet x1, <br/>
+	Chopsuey x1, <br/>
+	Plain Rice x5, <br/>
+	Pitcher of Iced Tea x1, <br/>
+	Leche Flan x1`,
+	price: 2600,
+	image: "",
+	category: "Naps Family Meals"
+},
+
+{
+	id: 167,
+	name: "Family Meal D",
+	description: `Sinigang na Hipon x1, <br/>
+	Fried Chicken Whole x1, <br/>
+	Crispy Pata x1, <br/>
+	Boneless Bangus x1, <br/>
+	Kare-kare x1, <br/>
+	Plain Rice x5, <br/>
+	Pitcher of Iced Tea x1, <br/>
+	Leche Flan x1`,
+	price: 2750,
+	image: "",
+	category: "Naps Family Meals"
+},
+
 /* Naps Best Pulutans */
 
 {
@@ -1366,7 +1436,7 @@ const menu = [
 	image: "",
 	category: "Naps Sarap Meals"
 },
-
+// last id 158
 // pasalubongs
 {
 	id: 159,
@@ -1408,7 +1478,6 @@ const menu = [
 	image: "",
 	category: "Pasalubong"
 }
-// last id 163
 ];
 
 const deliveryMenu = menu.map(item => ({
