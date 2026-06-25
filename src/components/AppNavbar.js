@@ -23,11 +23,9 @@ export default function AppNavbar() {
           <Nav className="ms-auto">
             {isLoggedIn ? (
               <>
-
-                
-
                 <Nav.Link as={NavLink} to="/orders">Orders</Nav.Link>
                 <Nav.Link as={NavLink} to="/orders/summary">OrdersSummary</Nav.Link>
+                <Nav.Link as={NavLink} to="/late-add-orders">LateAdd</Nav.Link>
                 <Nav.Link as={NavLink} to="/items">Items</Nav.Link>
 
                 

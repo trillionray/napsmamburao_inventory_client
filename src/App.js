@@ -16,7 +16,9 @@ import MyTimeLogsSummary from './pages/MyTimeLogsSummary';
 import AllTimeLogs from './pages/AllTimeLogs';
 
 import ProductsPage from './pages/AllTimeLogs';
+
 import OrdersPage from './pages/OrdersPage';
+import LateAddOrder from './pages/LateAddOrder';
 import OrderView from './pages/OrderView';
 import OrdersSummary from './pages/OrdersSummary';
 
@@ -125,6 +127,7 @@ function App() {
 
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/late-add-orders" element={<LateAddOrder />} />
             <Route path="/orders/summary" element={<OrdersSummary />} />
             <Route path="/orders/:orderId" element={<OrderView />} />
             <Route path="/salaries" element={<Salaries />} />
