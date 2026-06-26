@@ -62,7 +62,7 @@ function App() {
       ];
 
       const results = await Promise.all(wakePromises);
-
+      console.log(results)
       // Show per-server status
       results.forEach(r => {
         if (r.ok) {

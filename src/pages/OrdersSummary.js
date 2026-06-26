@@ -104,8 +104,15 @@ const OrdersSummary = () => {
     };
 
   useEffect(() => {
-    fetchOrders();
+  fetchOrders();
+
+  const interval = setInterval(() => {
+  fetchOrders();
+  }, 30000); // 60 seconds
+
+  return () => clearInterval(interval);
   }, []);
+
 
   // ======================
   // OPEN ORDER
