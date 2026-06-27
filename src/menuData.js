@@ -116,7 +116,7 @@ const menu = [
 	id: 164,
 	name: "Bistek",
 	description: "",
-	price: 320,
+	price: 350,
 	image: "",
 	category: "Seafoods & Sisigs"
 },
