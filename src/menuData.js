@@ -113,6 +113,14 @@ const menu = [
 	category: "Seafoods & Sisigs"
 },
 {
+	id: 164,
+	name: "Bistek",
+	description: "",
+	price: 320,
+	image: "",
+	category: "Seafoods & Sisigs"
+},
+{
 	id: 14,
 	name: "Sizzling Seafoods",
 	description: "",
