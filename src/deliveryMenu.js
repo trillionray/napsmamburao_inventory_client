@@ -353,6 +353,14 @@ const menu = [
 	image: "./images/products/bagnetalacarte2.png",
 	category: "Naps Best Sellers"
 },
+{
+	id: 168,
+	name: "Bistek",
+	description: "",
+	price: 350,
+	image: "",
+	category: "Seafoods & Sisigs"
+},
 
 /* Vegetable Dishes */
 
