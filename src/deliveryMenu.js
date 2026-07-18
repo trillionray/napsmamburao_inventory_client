@@ -61,6 +61,15 @@ const menu = [
 	image: "./images/products/plainrice2.png",
 	category: "Side Orders"
 },
+
+{
+	id: 169,
+	name: "Shanghai Fried Rice",
+	description: "",
+	price: 200,
+	image: "",
+	category: "Side Orders"
+},
 {
 	id: 8,
 	name: "Garlic Rice",
@@ -87,7 +96,14 @@ const menu = [
 },
 
 /* Seafoods & Sisigs */
-
+{
+	id: 168,
+	name: "Bistek",
+	description: "",
+	price: 350,
+	image: "",
+	category: "Seafoods & Sisigs"
+},
 {
 	id: 11,
 	name: "Tofu Sisig",
@@ -353,14 +369,7 @@ const menu = [
 	image: "./images/products/bagnetalacarte2.png",
 	category: "Naps Best Sellers"
 },
-{
-	id: 168,
-	name: "Bistek",
-	description: "",
-	price: 350,
-	image: "",
-	category: "Seafoods & Sisigs"
-},
+
 
 /* Vegetable Dishes */
 
@@ -502,6 +511,14 @@ const menu = [
 	description: "",
 	price: 160,
 	image: "./images/products/softdrinksliter.png",
+	category: "Beverages"
+},
+{
+	id: 170,
+	name: "Iced Tea (Glass)",
+	description: "",
+	price: 49,
+	image: "",
 	category: "Beverages"
 },
 {
